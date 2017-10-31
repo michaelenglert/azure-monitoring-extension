@@ -1,0 +1,6 @@
+/target
+/lib
+/.idea
+.DS_Store
+*.iml
+integration-test-config.yml
