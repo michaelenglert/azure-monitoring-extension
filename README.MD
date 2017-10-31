@@ -12,7 +12,7 @@ This extension works only with the standalone machine agent.
 
 ## Installation
 
-Either [Download the Extension from the AppDynamics Marketplace](https://www.appdynamics.com/community/exchange/azure-monitoring-extension/) or Build from Source.
+Either [Download the Extension from the Github release](https://github.com/michaelenglert/azure-monitoring-extension/releases/tag/v1.0) or Build from Source.
 
 1. Deploy the `AzureMonitor-<VERSION>.zip` file into the `<machine agent home>/monitors` directory.
 
