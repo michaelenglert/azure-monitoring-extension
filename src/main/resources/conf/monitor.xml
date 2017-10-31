@@ -1,0 +1,22 @@
+<monitor>
+    <name>AzureMonitor</name>
+    <type>managed</type>
+    <description>Azure Monitor</description>
+    <monitor-configuration/>
+    <monitor-run-task>
+        <execution-style>periodic</execution-style>
+        <execution-frequency-in-seconds>30</execution-frequency-in-seconds>
+        <name>Azure Monitor Run task</name>
+        <display-name>Azure Monitor Run task</display-name>
+        <description>Azure Monitor Run task</description>
+        <type>java</type>
+        <execution-timeout-in-secs>30</execution-timeout-in-secs>
+        <task-arguments>
+            <argument name="config-file" is-required="true" default-value="monitors/AzureMonitor/config.yml" />
+        </task-arguments>
+        <java-task>
+            <classpath>azure-monitoring-extension.jar</classpath>
+            <impl-class>com.appdynamics.monitors.azure.AzureMonitor</impl-class>
+        </java-task>
+    </monitor-run-task>
+</monitor>
