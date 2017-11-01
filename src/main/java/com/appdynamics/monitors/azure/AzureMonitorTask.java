@@ -15,11 +15,11 @@ import java.util.Calendar;
 import java.util.Iterator;
 import java.util.TimeZone;
 
-public class AzureMonitorTask implements Runnable {
-    public static final Logger logger = LoggerFactory.getLogger(AzureMonitorTask.class);
-    private MonitorConfiguration configuration;
-    private JsonNode node;
-    private AuthenticationResult azureAuth;
+class AzureMonitorTask implements Runnable {
+    private static final Logger logger = LoggerFactory.getLogger(AzureMonitorTask.class);
+    private final MonitorConfiguration configuration;
+    private final JsonNode node;
+    private final AuthenticationResult azureAuth;
 
     public AzureMonitorTask(MonitorConfiguration configuration, JsonNode node, AuthenticationResult azureAuth) {
         this.configuration = configuration;
@@ -51,7 +51,7 @@ public class AzureMonitorTask implements Runnable {
         extractMetrics(AzureRestOperation.doGet(azureAuth,url),configuration.getMetricWriter(),configuration.getMetricPrefix());
     }
 
-    public static void extractMetrics(JsonNode json, MetricWriteHelper metricWriteHelper, String metricPrefix){
+    private static void extractMetrics(JsonNode json, MetricWriteHelper metricWriteHelper, String metricPrefix){
         if (logger.isDebugEnabled()) {logger.debug("JSON Node: " + AzureRestOperation.prettifyJson(json));}
         JsonNode jsonValue = json.get("value");
         Iterator<JsonNode> iterValue = jsonValue.iterator();
@@ -94,7 +94,7 @@ public class AzureMonitorTask implements Runnable {
         }
     }
 
-    public static String extractMetridId(String fullId){
+    private static String extractMetridId(String fullId){
         String metricId;
         String[] metricIdSegments = fullId.split("resourceGroups")[1].split("providers/Microsoft\\.");
         metricId = metricIdSegments[0]+metricIdSegments[1];
