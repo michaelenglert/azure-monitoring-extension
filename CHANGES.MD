@@ -1,7 +1,7 @@
 ### Version 1.1
 
 * Code Cleanup
-* Implented Enryption Support
+* Implemented Enryption Support
 
 ### Version 1.0
 
