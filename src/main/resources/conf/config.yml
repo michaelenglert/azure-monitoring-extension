@@ -1,34 +1,35 @@
 ### ANY CHANGES TO THIS FILE DOES NOT REQUIRE A RESTART ###
 
-#Number of Threads for the Extension
+# Number of Threads for the Extension
 numberOfThreads: 5
 
-#This will create it in specific Tier aka Component. Replace <COMPONENT_ID>.
-#Please make sure to have a trailing |.
-#To find out the COMPONENT_ID, please see the screen shot here https://docs.appdynamics.com/display/latest/Build+a+Monitoring+Extension+Using+Java
+# This will create it in specific Tier aka Component. Replace <COMPONENT_ID>.
+# Please make sure to have a trailing |.
+# To find out the COMPONENT_ID, please see the screen shot here https://docs.appdynamics.com/display/latest/Build+a+Monitoring+Extension+Using+Java
 #metricPrefix: "Server|Component:<COMPONENT_ID>|Custom Metrics|AzureMonitor|"
 metricPrefix:  "Custom Metrics|AzureMonitor|"
 
-#Uncomment only if encryption of passwords is wanted. - NOT YET IMPLEMENTED
+# Uncomment only if encryption of the clientKey is needed. If this is needed leave clientKey empty
 #encryptionKey: ""
+#encryptedClientKey: ""
 
-#Client ID obtained from the Azure Portal
+# Client ID obtained from the Azure Portal
 clientId: ""
 
-#Client Key for the upper ID obtained from the Azure Portal
+# Client Key for the upper ID obtained from the Azure Portal
 clientKey: ""
 
-#Tenant ID obtained from the Azure Portal
+# Tenant ID obtained from the Azure Portal
 tenantId: ""
 
-#Subscription ID obtained from the Azure Portal
+# Subscription ID obtained from the Azure Portal
 subscriptionId: ""
 
 api-version: "2017-05-10"
 
 monitor-api-version: "2017-05-01-preview"
 
-#Include Filter - These Resource Types will be monitored:
+# Include Filter - These Resource Types will be monitored:
 filter:
   - resourceType: "Microsoft.AnalysisServices/servers"
   - resourceType: "Microsoft.ApiManagement/service"
