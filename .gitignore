@@ -3,4 +3,4 @@
 /.idea
 .DS_Store
 *.iml
-integration-test-config.yml
+src/test/resources/conf/integration-*-config.yml
