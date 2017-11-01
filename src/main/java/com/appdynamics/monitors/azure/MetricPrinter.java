@@ -3,11 +3,10 @@ package com.appdynamics.monitors.azure;
 import com.appdynamics.extensions.util.MetricWriteHelper;
 import com.singularity.ee.agent.systemagent.api.MetricWriter;
 import org.slf4j.LoggerFactory;
-
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
-public class MetricPrinter {
+class MetricPrinter {
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(MetricPrinter.class);
     private final MetricWriteHelper metricWriter;
 
