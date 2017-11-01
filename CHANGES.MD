@@ -1,7 +1,7 @@
 ### Version 1.1
 
 * Code Cleanup
-* Implemented Enryption Support
+* Implemented Encryption Support
 
 ### Version 1.0
 
