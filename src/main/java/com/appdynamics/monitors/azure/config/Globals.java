@@ -21,6 +21,8 @@ public class Globals {
     public static final String tenantId = "tenantId";
     public static final String clientKey = "clientKey";
     public static final String subscriptionId = "subscriptionId";
-    public static final String PASSWORD_ENCRYPTED = "password-encrypted";
+    public static final String encryptionKey = "encryption-key";
+    public static final String encryptedClientKey = "encryptedClientKey";
+    public static final String passwordEncrypted = "password-encrypted";
     public static final int timeOffset = -2;
 }
