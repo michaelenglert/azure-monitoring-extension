@@ -4,7 +4,6 @@ import com.appdynamics.extensions.conf.MonitorConfiguration;
 import com.appdynamics.extensions.util.MetricWriteHelper;
 import com.appdynamics.extensions.util.MetricWriteHelperFactory;
 import com.appdynamics.extensions.conf.MonitorConfiguration.ConfItem;
-import com.appdynamics.monitors.azure.config.ConfigTask;
 import com.appdynamics.monitors.azure.config.Globals;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -24,12 +23,12 @@ import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 public class AzureMonitor extends AManagedMonitor {
-    public static final Logger logger = LoggerFactory.getLogger(AzureMonitor.class);
+    private static final Logger logger = LoggerFactory.getLogger(AzureMonitor.class);
     private MonitorConfiguration configuration;
 
     public AzureMonitor() { logger.info(String.format("Using Azure Monitor Version [%s]", getImplementationVersion())); }
 
-    protected void initialize(Map<String, String> argsMap) {
+    private void initialize(Map<String, String> argsMap) {
         if (configuration == null) {
             MetricWriteHelper metricWriteHelper = MetricWriteHelperFactory.create(this);
             MonitorConfiguration conf = new MonitorConfiguration(Globals.defaultMetricPrefix,
@@ -65,10 +64,11 @@ public class AzureMonitor extends AManagedMonitor {
                 try {
                     AuthenticationResult azureAuth = AzureAuth.getAzureAuth(
                             (String) config.get(Globals.clientId),
-                            (String) config.get(Globals.clientKey),
+                            Utilities.getClientKey(config),
                             (String) config.get(Globals.tenantId));
+                    //noinspection unchecked
                     List<Map> filters = (List<Map>) config.get(Globals.azureApiFilter);
-                    String filterUrl = ConfigTask.getFilters(filters);
+                    String filterUrl = Utilities.getFilters(filters);
                     URL url = new URL(Globals.azureEndpoint + Globals.azureApiSubscriptions + config.get(Globals.subscriptionId) + Globals.azureApiResources +
                             "?" + Globals.azureApiVersion + "=" + config.get(Globals.azureApiVersion) +
                             filterUrl);
