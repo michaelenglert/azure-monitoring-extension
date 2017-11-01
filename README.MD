@@ -21,16 +21,16 @@ Either [Download the Extension from the Github release](https://github.com/micha
 2. Set up config.yml. At minimum this is:
 
   ```
-  #Client ID obtained from the Azure Portal
+  # Client ID obtained from the Azure Portal
   clientId: ""
 
-  #Client Key for the upper ID obtained from the Azure Portal
+  # Client Key for the upper ID obtained from the Azure Portal
   clientKey: ""
 
-  #Tenant ID obtained from the Azure Portal
+  # Tenant ID obtained from the Azure Portal
   tenantId: ""
 
-  #Subscription ID obtained from the Azure Portal
+  # Subscription ID obtained from the Azure Portal
   subscriptionId: ""
   ```
   Details for the Setup can be found in the [Azure - Resource Manager - Howto - Control Access - Create Service Principal - Azure Portal](https://docs.microsoft.com/en-us/azure/azure-resource-manager/resource-group-create-service-principal-portal)
@@ -73,10 +73,17 @@ Either [Download the Extension from the Github release](https://github.com/micha
 </tbody>
 </table>
 
-
 ## Metrics
 
 Metrics available for Azure are maintained with the [Azure Monitor Documentation - Reference - Metrics Supported](https://docs.microsoft.com/en-us/azure/monitoring-and-diagnostics/monitoring-supported-metrics)
+
+##Password Encryption Support
+
+To avoid setting the clear text password in the config.yml. Please follow the process to encrypt the password and set the encrypted password and the key in the config.yml
+
+* Download the util jar to encrypt the password from [here](https://github.com/Appdynamics/maven-repo/blob/master/releases/com/appdynamics/appd-exts-commons/2.0.0/appd-exts-commons-2.0.0.jar)
+* Encrypt password from the commandline 
+  * `java -cp appd-exts-commons-<VERSION>.jar com.appdynamics.extensions.crypto.Encryptor myKey myPassword`
 
 ## Contributing
 
