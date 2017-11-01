@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
+@SuppressWarnings("WeakerAccess")
 public class AzureMonitor extends AManagedMonitor {
     private static final Logger logger = LoggerFactory.getLogger(AzureMonitor.class);
     private MonitorConfiguration configuration;

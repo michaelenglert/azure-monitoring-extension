@@ -1,6 +1,4 @@
 /target
-/lib
 /.idea
-.DS_Store
 *.iml
 src/test/resources/conf/integration-*-config.yml

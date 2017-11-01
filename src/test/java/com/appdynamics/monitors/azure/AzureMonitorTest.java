@@ -66,12 +66,12 @@ public class AzureMonitorTest {
         }
     }
 
-    public void testAzureMonitorRun(Map<String, String> taskArgs) throws TaskExecutionException, InterruptedException {
+    private void testAzureMonitorRun(Map<String, String> taskArgs) throws TaskExecutionException, InterruptedException {
         TaskOutput result = new AzureMonitor().execute(taskArgs, null);
         assertTrue(result.getStatusMessage().contains("Metric Upload Complete"));
     }
 
-    public void testAzureMonitorTaskRun(String configYml) throws Exception {
+    private void testAzureMonitorTaskRun(String configYml) throws Exception {
         MetricWriteHelper writer = Mockito.mock(MetricWriteHelper.class);
         Runnable runner = Mockito.mock(Runnable.class);
         MonitorConfiguration conf = new MonitorConfiguration(Globals.defaultMetricPrefix, runner, writer);

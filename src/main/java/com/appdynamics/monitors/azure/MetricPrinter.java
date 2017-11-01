@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
+@SuppressWarnings("SameParameterValue")
 class MetricPrinter {
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(MetricPrinter.class);
     private final MetricWriteHelper metricWriter;

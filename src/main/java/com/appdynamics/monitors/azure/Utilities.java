@@ -10,7 +10,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-public class Utilities {
+class Utilities {
     public static String getFilters(List<Map> filters) throws UnsupportedEncodingException {
         StringBuilder filterUrl = null;
         if (filters != null && !filters.isEmpty()) {

@@ -1,3 +1,4 @@
+<!--suppress XmlUnboundNsPrefix -->
 <monitor>
     <name>AzureMonitor</name>
     <type>managed</type>
