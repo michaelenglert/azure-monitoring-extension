@@ -50,13 +50,13 @@ class AzureMonitorTask implements Runnable {
         URL url = new URL(Globals.azureEndpoint + node.get("id").asText() + Globals.azureApiMetrics +
                 "?" + Globals.azureApiVersion + "=" + configuration.getConfigYml().get(Globals.azureMonitorApiVersion) +
                 "&" + Globals.azureApiTimeSpan + "=" + dateFormatter.format(startTime.getTime()) + "/" + dateFormatter.format(endTime.getTime()) +
-                "&" + Globals.metric + "=" + URLEncoder.encode(metric,"UTF-8"));
-        if (logger.isDebugEnabled()) {logger.debug("REST Call: " + url.toString());}
+                "&" + Globals.metric + "=" + URLEncoder.encode(metric,Globals.urlEncoding));
+        if (logger.isDebugEnabled()) {logger.debug("Get Metrics REST API Request: " + url.toString());}
         extractMetrics(AzureRestOperation.doGet(azureAuth,url));
     }
 
     private void extractMetrics(JsonNode json){
-        if (logger.isDebugEnabled()) {logger.debug("JSON Node: " + AzureRestOperation.prettifyJson(json));}
+        if (logger.isDebugEnabled()) {logger.debug("Get Metrics Response JSON: " + AzureRestOperation.prettifyJson(json));}
         JsonNode jsonValue = json.get("value");
         Iterator<JsonNode> iterMetricValue = jsonValue.iterator();
         JsonNode currentValueNode;
