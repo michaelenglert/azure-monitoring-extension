@@ -22,8 +22,7 @@ class AzureMonitorTask implements Runnable {
     private final AuthenticationResult azureAuth;
     private final String metric;
 
-    @SuppressWarnings("WeakerAccess")
-    public AzureMonitorTask(MonitorConfiguration configuration, JsonNode node, AuthenticationResult azureAuth, String metric) {
+    AzureMonitorTask(MonitorConfiguration configuration, JsonNode node, AuthenticationResult azureAuth, String metric) {
         this.configuration = configuration;
         this.node = node;
         this.azureAuth = azureAuth;
@@ -73,22 +72,10 @@ class AzureMonitorTask implements Runnable {
                 JsonNode currentDataNode;
                 while (iterData.hasNext()){
                     currentDataNode = iterData.next();
-                    if (currentDataNode.has("average")){
-                        metricType = "average";
-                        metricValue = currentDataNode.get("average").decimalValue();
-                    }
-                    else if (currentDataNode.has("total")){
-                        metricType = "total";
-                        metricValue = currentDataNode.get("total").decimalValue();
-                    }
-                    else if (currentDataNode.has("last")){
-                        metricType = "last";
-                        metricValue = currentDataNode.get("last").decimalValue();
-                    }
-                    else if (currentDataNode.has("maximum")){
-                        metricType = "maximum";
-                        metricValue = currentDataNode.get("maximum").decimalValue();
-                    }
+                    if (currentDataNode.has("average")){ metricType = "average"; metricValue = currentDataNode.get("average").decimalValue(); }
+                    else if (currentDataNode.has("total")){ metricType = "total"; metricValue = currentDataNode.get("total").decimalValue(); }
+                    else if (currentDataNode.has("last")){ metricType = "last"; metricValue = currentDataNode.get("last").decimalValue(); }
+                    else if (currentDataNode.has("maximum")){ metricType = "maximum"; metricValue = currentDataNode.get("maximum").decimalValue(); }
                 }
                 if (metricId != null && metricNameValue != null && metricType != null && metricUnit != null && metricValue != null){
                     MetricPrinter metricPrinter = new MetricPrinter(configuration.getMetricWriter());

@@ -15,8 +15,6 @@ import com.singularity.ee.agent.systemagent.api.exception.TaskExecutionException
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.List;
 import java.util.Map;
@@ -67,46 +65,33 @@ public class AzureMonitor extends AManagedMonitor {
                             (String) config.get(Globals.clientId),
                             Utilities.getClientKey(config),
                             (String) config.get(Globals.tenantId));
-                    //noinspection unchecked
-                    List<Map> filters = (List<Map>) config.get(Globals.azureApiFilter);
+                    @SuppressWarnings("unchecked") List<Map> filters = (List<Map>) config.get(Globals.azureApiFilter);
                     String filterUrl = Utilities.getFilters(filters);
                     URL resourcesUrl = new URL(Globals.azureEndpoint + Globals.azureApiSubscriptions + config.get(Globals.subscriptionId) + Globals.azureApiResources +
                             "?" + Globals.azureApiVersion + "=" + config.get(Globals.azureApiVersion) +
                             filterUrl);
                     JsonNode resourcesResponse = AzureRestOperation.doGet(azureAuth,resourcesUrl);
-                    if (logger.isDebugEnabled()) {
-                        logger.debug("Get Resources REST API Request: " + resourcesUrl.toString());
-                        logger.debug("Get Resources Response JSON: " + AzureRestOperation.prettifyJson(resourcesResponse));
-                    }
+                    if (logger.isDebugEnabled()) { logger.debug("Get Resources REST API Request: " + resourcesUrl.toString());logger.debug("Get Resources Response JSON: " + AzureRestOperation.prettifyJson(resourcesResponse)); }
                     ArrayNode resourceElements = (ArrayNode) resourcesResponse.get("value");
                     for(JsonNode resourceNode:resourceElements){
                         URL metricDefinitions = new URL(Globals.azureEndpoint + resourceNode.get("id").asText() + Globals.azureApiMetricDefinitions + "?" + Globals.azureApiVersion + "=" + config.get(Globals.azureMonitorApiVersion));
                         JsonNode metricDefinitionResponse = AzureRestOperation.doGet(azureAuth,metricDefinitions);
-                        if (logger.isDebugEnabled()) {
-                            logger.debug("Get Metric Definitions REST API Request: " + metricDefinitions.toString());
-                            logger.debug("Get Metric Definitions Response JSON: " + AzureRestOperation.prettifyJson(metricDefinitionResponse));
-                        }
+                        if (logger.isDebugEnabled()) { logger.debug("Get Metric Definitions REST API Request: " + metricDefinitions.toString());logger.debug("Get Metric Definitions Response JSON: " + AzureRestOperation.prettifyJson(metricDefinitionResponse)); }
                         ArrayNode metricDefinitionElements = (ArrayNode) metricDefinitionResponse.get("value");
                         for(JsonNode metricDefinitionNode:metricDefinitionElements){
                             AzureMonitorTask task = new AzureMonitorTask(configuration, resourceNode, azureAuth, metricDefinitionNode.get("name").get("value").asText());
                             configuration.getExecutorService().execute(task);
                         }
                     }
-                } catch (MalformedURLException e) {
-                    e.printStackTrace();
-                } catch (ExecutionException e) {
+                } catch (IOException e) {
                     e.printStackTrace();
                 } catch (InterruptedException e) {
                     e.printStackTrace();
-                } catch (UnsupportedEncodingException e) {
-                    e.printStackTrace();
-                } catch (IOException e) {
+                } catch (ExecutionException e) {
                     e.printStackTrace();
                 }
             }
-            else {
-                logger.error("The config.yml is not loaded due to previous errors.The task will not run");
-            }
+            else { logger.error("The config.yml is not loaded due to previous errors.The task will not run"); }
         }
     }
 
