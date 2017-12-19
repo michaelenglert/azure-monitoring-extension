@@ -70,18 +70,23 @@ public class AzureMonitor extends AManagedMonitor {
                     //noinspection unchecked
                     List<Map> filters = (List<Map>) config.get(Globals.azureApiFilter);
                     String filterUrl = Utilities.getFilters(filters);
-                    URL url = new URL(Globals.azureEndpoint + Globals.azureApiSubscriptions + config.get(Globals.subscriptionId) + Globals.azureApiResources +
+                    URL resourcesUrl = new URL(Globals.azureEndpoint + Globals.azureApiSubscriptions + config.get(Globals.subscriptionId) + Globals.azureApiResources +
                             "?" + Globals.azureApiVersion + "=" + config.get(Globals.azureApiVersion) +
                             filterUrl);
-                    JsonNode response = AzureRestOperation.doGet(azureAuth,url);
+                    JsonNode resourcesResponse = AzureRestOperation.doGet(azureAuth,resourcesUrl);
                     if (logger.isDebugEnabled()) {
-                        logger.debug("Initial REST API Request: " + url.toString());
-                        logger.debug("Initial Response JSON: " + AzureRestOperation.prettifyJson(response));
+                        logger.debug("Initial REST API Request: " + resourcesUrl.toString());
+                        logger.debug("Initial Response JSON: " + AzureRestOperation.prettifyJson(resourcesResponse));
                     }
-                    ArrayNode elements = (ArrayNode) response.get("value");
-                    for(JsonNode node:elements){
-                        AzureMonitorTask task = new AzureMonitorTask(configuration, node, azureAuth);
-                        configuration.getExecutorService().execute(task);
+                    ArrayNode resourceElements = (ArrayNode) resourcesResponse.get("value");
+                    for(JsonNode resourceNode:resourceElements){
+                        URL metricDefinitions = new URL(Globals.azureEndpoint + resourceNode.get("id").asText() + Globals.azureApiMetricDefinitions + "?" + Globals.azureApiVersion + "=" + config.get(Globals.azureMonitorApiVersion));
+                        JsonNode metricDefinitionResponse = AzureRestOperation.doGet(azureAuth,metricDefinitions);
+                        ArrayNode metricDefinitionElements = (ArrayNode) metricDefinitionResponse.get("value");
+                        for(JsonNode metricDefinitionNode:metricDefinitionElements){
+                            AzureMonitorTask task = new AzureMonitorTask(configuration, resourceNode, azureAuth, metricDefinitionNode.get("name").get("value").asText());
+                            configuration.getExecutorService().execute(task);
+                        }
                     }
                 } catch (MalformedURLException e) {
                     e.printStackTrace();

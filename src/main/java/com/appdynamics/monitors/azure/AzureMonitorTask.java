@@ -1,7 +1,6 @@
 package com.appdynamics.monitors.azure;
 
 import com.appdynamics.extensions.conf.MonitorConfiguration;
-import com.appdynamics.extensions.util.MetricWriteHelper;
 import com.appdynamics.monitors.azure.config.Globals;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.microsoft.aad.adal4j.AuthenticationResult;
@@ -10,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Iterator;
@@ -20,11 +20,14 @@ class AzureMonitorTask implements Runnable {
     private final MonitorConfiguration configuration;
     private final JsonNode node;
     private final AuthenticationResult azureAuth;
+    private final String metric;
 
-    public AzureMonitorTask(MonitorConfiguration configuration, JsonNode node, AuthenticationResult azureAuth) {
+    @SuppressWarnings("WeakerAccess")
+    public AzureMonitorTask(MonitorConfiguration configuration, JsonNode node, AuthenticationResult azureAuth, String metric) {
         this.configuration = configuration;
         this.node = node;
         this.azureAuth = azureAuth;
+        this.metric = metric;
     }
 
     public void run() {
@@ -46,18 +49,19 @@ class AzureMonitorTask implements Runnable {
         if (logger.isDebugEnabled()) {logger.debug("JSON Node: " + AzureRestOperation.prettifyJson(node));}
         URL url = new URL(Globals.azureEndpoint + node.get("id").asText() + Globals.azureApiMetrics +
                 "?" + Globals.azureApiVersion + "=" + configuration.getConfigYml().get(Globals.azureMonitorApiVersion) +
-                "&" + Globals.azureApiTimeSpan + "=" + dateFormatter.format(startTime.getTime()) + "/" + dateFormatter.format(endTime.getTime()));
+                "&" + Globals.azureApiTimeSpan + "=" + dateFormatter.format(startTime.getTime()) + "/" + dateFormatter.format(endTime.getTime()) +
+                "&" + Globals.metric + "=" + URLEncoder.encode(metric,"UTF-8"));
         if (logger.isDebugEnabled()) {logger.debug("REST Call: " + url.toString());}
-        extractMetrics(AzureRestOperation.doGet(azureAuth,url),configuration.getMetricWriter(),configuration.getMetricPrefix());
+        extractMetrics(AzureRestOperation.doGet(azureAuth,url));
     }
 
-    private static void extractMetrics(JsonNode json, MetricWriteHelper metricWriteHelper, String metricPrefix){
+    private void extractMetrics(JsonNode json){
         if (logger.isDebugEnabled()) {logger.debug("JSON Node: " + AzureRestOperation.prettifyJson(json));}
         JsonNode jsonValue = json.get("value");
-        Iterator<JsonNode> iterValue = jsonValue.iterator();
+        Iterator<JsonNode> iterMetricValue = jsonValue.iterator();
         JsonNode currentValueNode;
-        while (iterValue.hasNext()){
-            currentValueNode = iterValue.next();
+        while (iterMetricValue.hasNext()){
+            currentValueNode = iterMetricValue.next();
             String metricId = extractMetridId(currentValueNode.get("id").asText());
             String metricNameValue = currentValueNode.get("name").get("value").asText();
             String metricUnit = currentValueNode.get("unit").asText();
@@ -87,8 +91,8 @@ class AzureMonitorTask implements Runnable {
                     }
                 }
                 if (metricId != null && metricNameValue != null && metricType != null && metricUnit != null && metricValue != null){
-                    MetricPrinter metricPrinter = new MetricPrinter(metricWriteHelper);
-                    metricPrinter.reportMetric(metricPrefix + metricId + metricNameValue, metricValue);
+                    MetricPrinter metricPrinter = new MetricPrinter(configuration.getMetricWriter());
+                    metricPrinter.reportMetric(configuration.getMetricPrefix() + metricId + metricNameValue, metricValue);
                 }
             }
         }

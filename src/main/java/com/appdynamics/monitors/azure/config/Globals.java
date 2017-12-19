@@ -7,6 +7,7 @@ public class Globals {
     public static final String azureMonitorApiVersion = "monitor-api-version";
     public static final String defaultMetricPrefix = "Custom Metrics|AzureMonitor|";
     public static final String azureApiMetrics = "/providers/microsoft.insights/metrics";
+    public static final String azureApiMetricDefinitions = "/providers/microsoft.insights/metricDefinitions";
     public static final String azureApiSubscriptions = "/subscriptions/";
     public static final String azureApiResources = "/resources";
     public static final String azureApiFilter = "filter";
@@ -19,6 +20,7 @@ public class Globals {
     public static final String configFile = "config-file";
     public static final String clientId = "clientId";
     public static final String tenantId = "tenantId";
+    public static final String metric = "metric";
     public static final String clientKey = "clientKey";
     public static final String subscriptionId = "subscriptionId";
     public static final String encryptionKey = "encryption-key";
