@@ -83,6 +83,7 @@ public class AzureMonitor extends AManagedMonitor {
                             configuration.getExecutorService().execute(task);
                         }
                     }
+                    logger.info("Finished gathering Metrics");
                 } catch (IOException e) {
                     e.printStackTrace();
                 } catch (InterruptedException e) {
