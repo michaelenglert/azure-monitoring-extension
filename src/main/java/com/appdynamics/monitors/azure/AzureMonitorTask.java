@@ -76,13 +76,16 @@ class AzureMonitorTask implements Runnable {
                     else if (currentDataNode.has("total")){ metricType = "total"; metricValue = currentDataNode.get("total").decimalValue(); }
                     else if (currentDataNode.has("last")){ metricType = "last"; metricValue = currentDataNode.get("last").decimalValue(); }
                     else if (currentDataNode.has("maximum")){ metricType = "maximum"; metricValue = currentDataNode.get("maximum").decimalValue(); }
+                    else { logger.error("Invalid Type"); }
                 }
                 if (metricId != null && metricNameValue != null && metricType != null && metricUnit != null && metricValue != null){
                     MetricPrinter metricPrinter = new MetricPrinter(configuration.getMetricWriter());
                     metricPrinter.reportMetric(configuration.getMetricPrefix() + metricId + metricNameValue, metricValue);
+                    if (logger.isDebugEnabled()) { logger.debug("Sending metric={}", metricNameValue); }
                 }
             }
         }
+        logger.info("Finished working on REST Call");
     }
 
     private static String extractMetridId(String fullId){
