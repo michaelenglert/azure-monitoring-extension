@@ -45,7 +45,7 @@ class AzureMonitorTask implements Runnable {
         startTime.add(Calendar.MINUTE, Globals.timeOffset);
         SimpleDateFormat dateFormatter = new SimpleDateFormat(Globals.azureApiTimeFormat);
         dateFormatter.setTimeZone(utc);
-        if (logger.isDebugEnabled()) {logger.debug("JSON Node: " + AzureRestOperation.prettifyJson(node));}
+        if (logger.isDebugEnabled()) {logger.debug("JSON Node: " + Utilities.prettifyJson(node));}
         URL url = new URL(Globals.azureEndpoint + node.get("id").asText() + Globals.azureApiMetrics +
                 "?" + Globals.azureApiVersion + "=" + configuration.getConfigYml().get(Globals.azureMonitorApiVersion) +
                 "&" + Globals.azureApiTimeSpan + "=" + dateFormatter.format(startTime.getTime()) + "/" + dateFormatter.format(endTime.getTime()) +
@@ -55,7 +55,7 @@ class AzureMonitorTask implements Runnable {
     }
 
     private void extractMetrics(JsonNode json){
-        if (logger.isDebugEnabled()) {logger.debug("Get Metrics Response JSON: " + AzureRestOperation.prettifyJson(json));}
+        if (logger.isDebugEnabled()) {logger.debug("Get Metrics Response JSON: " + Utilities.prettifyJson(json));}
         JsonNode jsonValue = json.get("value");
         Iterator<JsonNode> iterMetricValue = jsonValue.iterator();
         JsonNode currentValueNode;

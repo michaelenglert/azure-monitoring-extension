@@ -2,6 +2,9 @@ package com.appdynamics.monitors.azure;
 
 import com.appdynamics.extensions.crypto.CryptoUtil;
 import com.appdynamics.monitors.azure.config.Globals;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Strings;
 import com.google.common.collect.Maps;
 import java.io.UnsupportedEncodingException;
@@ -42,6 +45,16 @@ class Utilities {
             cryptoMap.put(Globals.passwordEncrypted, encryptedClientKey);
             cryptoMap.put(Globals.encryptionKey, encryptionKey);
             return CryptoUtil.getPassword(cryptoMap);
+        }
+        return null;
+    }
+
+    static String prettifyJson(JsonNode json) {
+        ObjectMapper mapper = new ObjectMapper();
+        try {
+            return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(json);
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
         }
         return null;
     }
