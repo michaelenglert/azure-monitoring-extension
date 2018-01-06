@@ -1,6 +1,8 @@
 ### Version 1.1.9.1 (Beta)
 
 * Added Troubleshooting Steps to Readme
+* Added Service Fabric Support 
+  * **!!Authentication is not yet implemented due to the lack of a test environment!!**
 
 ### Version 1.1.9  (Beta)
 
