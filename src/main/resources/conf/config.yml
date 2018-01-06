@@ -73,6 +73,7 @@ filter:
   - resourceType: "Microsoft.Web/sites/slots"
   - resourceType: "Microsoft.Web/hostingEnvironments/multiRolePools"
   - resourceType: "Microsoft.Web/hostingEnvironments/workerPools"
+  - resourceType: "Microsoft.ServiceFabric/clusters"
 
 serviceFabricApiVersion: "3.0"
 serviceFabricResourceApiVersion: "2016-09-01"
