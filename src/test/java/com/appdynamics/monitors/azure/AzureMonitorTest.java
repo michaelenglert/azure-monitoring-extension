@@ -95,7 +95,7 @@ public class AzureMonitorTest {
                "?" + Globals.azureApiVersion + "=" + conf.getConfigYml().get(Globals.azureApiVersion) +
                filterUrl);
        ArrayNode resourceElements = (ArrayNode) AzureRestOperation.doGet(azureAuth,url).get("value");
-       AzureRestOperation.prettifyJson(resourceElements);
+       Utilities.prettifyJson(resourceElements);
        for(JsonNode resourceNode:resourceElements){
            URL metricDefinitions = new URL(Globals.azureEndpoint + resourceNode.get("id").asText() + Globals.azureApiMetricDefinitions + "?" + Globals.azureApiVersion + "=" + conf.getConfigYml().get(Globals.azureMonitorApiVersion));
            JsonNode metricDefinitionResponse = AzureRestOperation.doGet(azureAuth,metricDefinitions);

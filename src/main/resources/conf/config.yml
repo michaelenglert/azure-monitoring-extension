@@ -73,3 +73,14 @@ filter:
   - resourceType: "Microsoft.Web/sites/slots"
   - resourceType: "Microsoft.Web/hostingEnvironments/multiRolePools"
   - resourceType: "Microsoft.Web/hostingEnvironments/workerPools"
+
+serviceFabricApiVersion: "3.0"
+serviceFabricResourceApiVersion: "2016-09-01"
+serviceFabricBody: '{"ApplicationFilters":[{"HealthStateFilter":65535}],"NodeFilters":[{"HealthStateFilter":65535}]}'
+
+serviceFabricHealthStates:
+  - Invalid: 0
+    Ok: 1
+    Warning: 2
+    Error: 3
+    Unknown: 65535
