@@ -74,13 +74,18 @@ public class AzureMonitor extends AManagedMonitor {
                     if (logger.isDebugEnabled()) { logger.debug("Get Resources REST API Request: " + resourcesUrl.toString());logger.debug("Get Resources Response JSON: " + Utilities.prettifyJson(resourcesResponse)); }
                     ArrayNode resourceElements = (ArrayNode) resourcesResponse.get("value");
                     for(JsonNode resourceNode:resourceElements){
+                        if (resourceNode.get("id").asText().contains("Microsoft.ServiceFabric/clusters")){
+                            JsonNode serviceFabricResponse = AzureRestOperation.doGet(azureAuth,new URL(Globals.azureEndpoint + resourceNode.get("id").asText() + "?" + Globals.azureApiVersion + "=" + config.get(Globals.serviceFabricResourceApiVersion)));
+                            ServiceFabricTask fabricTask = new ServiceFabricTask(configuration, serviceFabricResponse, serviceFabricResponse.get("name").asText());
+                            configuration.getExecutorService().execute(fabricTask);
+                        }
                         URL metricDefinitions = new URL(Globals.azureEndpoint + resourceNode.get("id").asText() + Globals.azureApiMetricDefinitions + "?" + Globals.azureApiVersion + "=" + config.get(Globals.azureMonitorApiVersion));
                         JsonNode metricDefinitionResponse = AzureRestOperation.doGet(azureAuth,metricDefinitions);
                         if (logger.isDebugEnabled()) { logger.debug("Get Metric Definitions REST API Request: " + metricDefinitions.toString());logger.debug("Get Metric Definitions Response JSON: " + Utilities.prettifyJson(metricDefinitionResponse)); }
                         ArrayNode metricDefinitionElements = (ArrayNode) metricDefinitionResponse.get("value");
                         for(JsonNode metricDefinitionNode:metricDefinitionElements){
-                            AzureMonitorTask task = new AzureMonitorTask(configuration, resourceNode, azureAuth, metricDefinitionNode.get("name").get("value").asText());
-                            configuration.getExecutorService().execute(task);
+                            AzureMonitorTask monitorTask = new AzureMonitorTask(configuration, resourceNode, azureAuth, metricDefinitionNode.get("name").get("value").asText());
+                            configuration.getExecutorService().execute(monitorTask);
                         }
                     }
                     logger.info("Finished gathering Metrics");
