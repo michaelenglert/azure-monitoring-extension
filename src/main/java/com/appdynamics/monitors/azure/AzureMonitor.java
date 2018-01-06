@@ -84,8 +84,13 @@ public class AzureMonitor extends AManagedMonitor {
                         if (logger.isDebugEnabled()) { logger.debug("Get Metric Definitions REST API Request: " + metricDefinitions.toString());logger.debug("Get Metric Definitions Response JSON: " + Utilities.prettifyJson(metricDefinitionResponse)); }
                         ArrayNode metricDefinitionElements = (ArrayNode) metricDefinitionResponse.get("value");
                         for(JsonNode metricDefinitionNode:metricDefinitionElements){
-                            AzureMonitorTask monitorTask = new AzureMonitorTask(configuration, resourceNode, azureAuth, metricDefinitionNode.get("name").get("value").asText());
-                            configuration.getExecutorService().execute(monitorTask);
+                            if (metricDefinitionNode.get("isDimensionRequired").asText().equals("true")){
+                                logger.info("Dimensions are currently not supported. Skipping " + metricDefinitionNode.get("id").asText());
+                            }
+                            else {
+                                AzureMonitorTask monitorTask = new AzureMonitorTask(configuration, resourceNode, azureAuth, metricDefinitionNode.get("name").get("value").asText());
+                                configuration.getExecutorService().execute(monitorTask);
+                            }
                         }
                     }
                     logger.info("Finished gathering Metrics");
