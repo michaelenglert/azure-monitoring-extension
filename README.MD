@@ -75,7 +75,7 @@ Either [Download the Extension from the Github release](https://github.com/micha
 
 ## Metrics
 
-Metrics available for Azure are maintained with the [Azure Monitor Documentation - Reference - Metrics Supported](https://docs.microsoft.com/en-us/azure/monitoring-and-diagnostics/monitoring-supported-metrics)
+Metrics available for Azure are maintained within the [Azure Monitor Documentation - Reference - Metrics Supported](https://docs.microsoft.com/en-us/azure/monitoring-and-diagnostics/monitoring-supported-metrics)
 
 ## Password Encryption Support
 
