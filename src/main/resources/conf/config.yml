@@ -78,6 +78,8 @@ serviceFabricApiVersion: "3.0"
 serviceFabricResourceApiVersion: "2016-09-01"
 serviceFabricBody: '{"ApplicationFilters":[{"HealthStateFilter":65535}],"NodeFilters":[{"HealthStateFilter":65535}]}'
 
+# Service Fabric Health States. These States will be translated to numbers according to the table below
+# The Defaults are derived from here https://docs.microsoft.com/en-us/rest/api/servicefabric/sfclient-model-healthinformation
 serviceFabricHealthStates:
   - Invalid: 0
     Ok: 1
