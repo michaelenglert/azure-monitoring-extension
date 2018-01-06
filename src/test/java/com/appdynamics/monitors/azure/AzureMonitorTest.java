@@ -30,8 +30,6 @@ public class AzureMonitorTest {
             testAzureMonitorRun(taskArgs);
         } catch (TaskExecutionException e) {
             e.printStackTrace();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
         }
     }
 
@@ -42,8 +40,6 @@ public class AzureMonitorTest {
         try {
             testAzureMonitorRun(taskArgs);
         } catch (TaskExecutionException e) {
-            e.printStackTrace();
-        } catch (InterruptedException e) {
             e.printStackTrace();
         }
     }
@@ -66,7 +62,7 @@ public class AzureMonitorTest {
        }
    }
 
-   private void testAzureMonitorRun(Map<String, String> taskArgs) throws TaskExecutionException, InterruptedException {
+   private void testAzureMonitorRun(Map<String, String> taskArgs) throws TaskExecutionException {
        TaskOutput result = new AzureMonitor().execute(taskArgs, null);
        assertTrue(result.getStatusMessage().contains("Metric Upload Complete"));
    }
@@ -77,7 +73,7 @@ public class AzureMonitorTest {
        MonitorConfiguration conf = new MonitorConfiguration(Globals.defaultMetricPrefix, runner, writer);
        conf.setConfigYml(configYml);
        Mockito.doAnswer(new Answer() {
-            public Object answer(InvocationOnMock invocationOnMock) throws Throwable { Object[] args = invocationOnMock.getArguments();
+            public Object answer(InvocationOnMock invocationOnMock) { Object[] args = invocationOnMock.getArguments();
                 System.out.println(args[0] + "=" + args[1]);
                 return null;
             }
