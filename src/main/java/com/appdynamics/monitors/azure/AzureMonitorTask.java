@@ -73,7 +73,6 @@ class AzureMonitorTask implements Runnable {
                 if (metricId != null && metricNameValue != null && metricType != null && metricUnit != null && metricValue != null){
                     MetricPrinter metricPrinter = new MetricPrinter(configuration.getMetricWriter());
                     metricPrinter.reportMetric(configuration.getMetricPrefix() + metricId + metricNameValue, metricValue);
-                    if (logger.isDebugEnabled()) { logger.debug("Sending metric={}", metricNameValue); }
                 }
             }
         }
