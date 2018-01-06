@@ -12,7 +12,6 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
-import java.util.Iterator;
 import java.util.TimeZone;
 
 class AzureMonitorTask implements Runnable {
@@ -57,10 +56,7 @@ class AzureMonitorTask implements Runnable {
     private void extractMetrics(JsonNode json){
         if (logger.isDebugEnabled()) {logger.debug("Get Metrics Response JSON: " + Utilities.prettifyJson(json));}
         JsonNode jsonValue = json.get("value");
-        Iterator<JsonNode> iterMetricValue = jsonValue.iterator();
-        JsonNode currentValueNode;
-        while (iterMetricValue.hasNext()){
-            currentValueNode = iterMetricValue.next();
+        for (JsonNode currentValueNode:jsonValue){
             String metricId = extractMetridId(currentValueNode.get("id").asText());
             String metricNameValue = currentValueNode.get("name").get("value").asText();
             String metricUnit = currentValueNode.get("unit").asText();
@@ -68,10 +64,7 @@ class AzureMonitorTask implements Runnable {
             BigDecimal metricValue = null;
             if(currentValueNode.get("timeseries").has(0)){
                 JsonNode jsonData = currentValueNode.get("timeseries").get(0).get("data");
-                Iterator<JsonNode> iterData = jsonData.iterator();
-                JsonNode currentDataNode;
-                while (iterData.hasNext()){
-                    currentDataNode = iterData.next();
+                for (JsonNode currentDataNode:jsonData){
                     if (currentDataNode.has("average")){ metricType = "average"; metricValue = currentDataNode.get("average").decimalValue(); }
                     else if (currentDataNode.has("total")){ metricType = "total"; metricValue = currentDataNode.get("total").decimalValue(); }
                     else if (currentDataNode.has("last")){ metricType = "last"; metricValue = currentDataNode.get("last").decimalValue(); }
