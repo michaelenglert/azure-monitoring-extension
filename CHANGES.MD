@@ -1,3 +1,7 @@
+### Version 1.1.9.1 (Beta)
+
+* Added Troubleshooting Steps to Readme
+
 ### Version 1.1.9  (Beta)
 
 * Implemented Metric Definition Lookup

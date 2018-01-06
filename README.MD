@@ -89,7 +89,16 @@ To avoid setting the clear text password in the config.yml. Please follow the pr
 
 Always feel free to fork and contribute any changes directly via [GitHub](https://github.com/michaelenglert/azure-monitoring-extension).
 
-## Community
+## Troubleshooting
+
+1. Verify Machine Agent Data: Please start the Machine Agent without the extension and make sure that it reports data. Verify that the machine agent status is UP and it is reporting Hardware Metrics.
+2. config.yml: Validate the file [here](http://www.yamllint.com/)
+3. Metric Limit: Please start the machine agent with the argument `-Dappdynamics.agent.maxMetrics=5000` if there is a metric limit reached error in the logs. If you don't see the expected metrics, this could be the cause.
+4. Check Logs: There could be some obvious errors in the machine agent logs. Please take a look.
+5. `The config cannot be null` error.
+   This usually happenes when on a windows machine in monitor.xml you give config.yaml file path with linux file path separator */*. Use Windows file path separator *\* e.g. *monitors\Monitor\config.yaml*. For Windows, please specify
+   the complete path
+6. Collect Debug Logs: Edit the file, *<MachineAgent>/conf/logging/log4j.xml* and update the level of the appender *com.appdynamics* and *com.singularity* to debug. Let it run for 5-10 minutes and attach the logs to a support ticket.
 
 ## Support
 
