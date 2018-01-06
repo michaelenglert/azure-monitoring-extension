@@ -27,4 +27,9 @@ public class Globals {
     public static final String encryptedClientKey = "encryptedClientKey";
     public static final String passwordEncrypted = "password-encrypted";
     public static final int timeOffset = -2;
+    public static final String serviceFabricGetClusterHealthChunk = "/$/GetClusterHealthChunk";
+    public static final String serviceFabricBody = "serviceFabricBody";
+    public static final String serviceFabricApiVersion = "serviceFabricApiVersion";
+    public static final String serviceFabricResourceApiVersion = "serviceFabricResourceApiVersion";
+    public static final String serviceFabricHealthStates = "serviceFabricHealthStates";
 }
