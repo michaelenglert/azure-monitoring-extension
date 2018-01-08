@@ -7,6 +7,7 @@ public class Globals {
     public static final String azureMonitorApiVersion = "monitor-api-version";
     public static final String defaultMetricPrefix = "Custom Metrics|AzureMonitor|";
     public static final String azureApiMetrics = "/providers/microsoft.insights/metrics";
+    public static final String azureApiMetricDefinitions = "/providers/microsoft.insights/metricDefinitions";
     public static final String azureApiSubscriptions = "/subscriptions/";
     public static final String azureApiResources = "/resources";
     public static final String azureApiFilter = "filter";
@@ -19,10 +20,16 @@ public class Globals {
     public static final String configFile = "config-file";
     public static final String clientId = "clientId";
     public static final String tenantId = "tenantId";
+    public static final String metric = "metric";
     public static final String clientKey = "clientKey";
     public static final String subscriptionId = "subscriptionId";
     public static final String encryptionKey = "encryption-key";
     public static final String encryptedClientKey = "encryptedClientKey";
     public static final String passwordEncrypted = "password-encrypted";
     public static final int timeOffset = -2;
+    public static final String serviceFabricGetClusterHealthChunk = "/$/GetClusterHealthChunk";
+    public static final String serviceFabricBody = "serviceFabricBody";
+    public static final String serviceFabricApiVersion = "serviceFabricApiVersion";
+    public static final String serviceFabricResourceApiVersion = "serviceFabricResourceApiVersion";
+    public static final String serviceFabricHealthStates = "serviceFabricHealthStates";
 }

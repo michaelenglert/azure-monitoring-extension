@@ -15,8 +15,6 @@ import com.singularity.ee.agent.systemagent.api.exception.TaskExecutionException
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.List;
 import java.util.Map;
@@ -67,37 +65,48 @@ public class AzureMonitor extends AManagedMonitor {
                             (String) config.get(Globals.clientId),
                             Utilities.getClientKey(config),
                             (String) config.get(Globals.tenantId));
-                    //noinspection unchecked
-                    List<Map> filters = (List<Map>) config.get(Globals.azureApiFilter);
+                    @SuppressWarnings("unchecked") List<Map> filters = (List<Map>) config.get(Globals.azureApiFilter);
                     String filterUrl = Utilities.getFilters(filters);
-                    URL url = new URL(Globals.azureEndpoint + Globals.azureApiSubscriptions + config.get(Globals.subscriptionId) + Globals.azureApiResources +
+                    URL resourcesUrl = new URL(Globals.azureEndpoint + Globals.azureApiSubscriptions + config.get(Globals.subscriptionId) + Globals.azureApiResources +
                             "?" + Globals.azureApiVersion + "=" + config.get(Globals.azureApiVersion) +
                             filterUrl);
-                    JsonNode response = AzureRestOperation.doGet(azureAuth,url);
-                    if (logger.isDebugEnabled()) {
-                        logger.debug("Initial REST API Request: " + url.toString());
-                        logger.debug("Initial Response JSON: " + AzureRestOperation.prettifyJson(response));
+                    //TODO why are you not using HTTP Client library from appd-exts-commons?
+                    JsonNode resourcesResponse = AzureRestOperation.doGet(azureAuth,resourcesUrl);
+                    if (logger.isDebugEnabled()) { logger.debug("Get Resources REST API Request: " + resourcesUrl.toString());logger.debug("Get Resources Response JSON: " + Utilities.prettifyJson(resourcesResponse)); }
+                    ArrayNode resourceElements = (ArrayNode) resourcesResponse.get("value");
+                    for(JsonNode resourceNode:resourceElements){
+                        if (resourceNode.get("id").asText().contains("Microsoft.ServiceFabric/clusters")){
+                            JsonNode serviceFabricResponse = AzureRestOperation.doGet(azureAuth,new URL(Globals.azureEndpoint + resourceNode.get("id").asText() + "?" + Globals.azureApiVersion + "=" + config.get(Globals.serviceFabricResourceApiVersion)));
+                            ServiceFabricTask fabricTask = new ServiceFabricTask(configuration, serviceFabricResponse, serviceFabricResponse.get("name").asText());
+                            configuration.getExecutorService().execute(fabricTask);
+                        }
+                        URL metricDefinitions = new URL(Globals.azureEndpoint + resourceNode.get("id").asText() + Globals.azureApiMetricDefinitions + "?" + Globals.azureApiVersion + "=" + config.get(Globals.azureMonitorApiVersion));
+                        JsonNode metricDefinitionResponse = AzureRestOperation.doGet(azureAuth,metricDefinitions);
+                        if (logger.isDebugEnabled()) { logger.debug("Get Metric Definitions REST API Request: " + metricDefinitions.toString());logger.debug("Get Metric Definitions Response JSON: " + Utilities.prettifyJson(metricDefinitionResponse)); }
+                        ArrayNode metricDefinitionElements = (ArrayNode) metricDefinitionResponse.get("value");
+                        for(JsonNode metricDefinitionNode:metricDefinitionElements){
+                            if (metricDefinitionNode.get("isDimensionRequired").asText().equals("true")){
+                                logger.info("Dimensions are currently not supported. Skipping " + metricDefinitionNode.get("id").asText());
+                            }
+                            else {
+                                AzureMonitorTask monitorTask = new AzureMonitorTask(configuration, resourceNode, azureAuth, metricDefinitionNode.get("name").get("value").asText());
+                                configuration.getExecutorService().execute(monitorTask);
+                            }
+                        }
                     }
-                    ArrayNode elements = (ArrayNode) response.get("value");
-                    for(JsonNode node:elements){
-                        AzureMonitorTask task = new AzureMonitorTask(configuration, node, azureAuth);
-                        configuration.getExecutorService().execute(task);
-                    }
-                } catch (MalformedURLException e) {
-                    e.printStackTrace();
-                } catch (ExecutionException e) {
+                    logger.info("Finished gathering Metrics");
+                } catch (IOException e) {
+                    //TODO log the exceptions
                     e.printStackTrace();
                 } catch (InterruptedException e) {
+                    //TODO log the exceptions
                     e.printStackTrace();
-                } catch (UnsupportedEncodingException e) {
-                    e.printStackTrace();
-                } catch (IOException e) {
+                } catch (ExecutionException e) {
+                    //TODO log the exceptions
                     e.printStackTrace();
                 }
             }
-            else {
-                logger.error("The config.yml is not loaded due to previous errors.The task will not run");
-            }
+            else { logger.error("The config.yml is not loaded due to previous errors.The task will not run"); }
         }
     }
 

@@ -1,5 +1,3 @@
-### ANY CHANGES TO THIS FILE DOES NOT REQUIRE A RESTART ###
-
 # Number of Threads for the Extension
 numberOfThreads: 5
 
@@ -75,3 +73,17 @@ filter:
   - resourceType: "Microsoft.Web/sites/slots"
   - resourceType: "Microsoft.Web/hostingEnvironments/multiRolePools"
   - resourceType: "Microsoft.Web/hostingEnvironments/workerPools"
+  - resourceType: "Microsoft.ServiceFabric/clusters"
+
+serviceFabricApiVersion: "3.0"
+serviceFabricResourceApiVersion: "2016-09-01"
+serviceFabricBody: '{"ApplicationFilters":[{"HealthStateFilter":65535}],"NodeFilters":[{"HealthStateFilter":65535}]}'
+
+# Service Fabric Health States. These States will be translated to numbers according to the table below
+# The Defaults are derived from here https://docs.microsoft.com/en-us/rest/api/servicefabric/sfclient-model-healthinformation
+serviceFabricHealthStates:
+  - Invalid: 0
+    Ok: 1
+    Warning: 2
+    Error: 3
+    Unknown: 65535
