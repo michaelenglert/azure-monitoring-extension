@@ -12,6 +12,8 @@ import java.util.concurrent.Future;
 
 class AzureAuth {
     public static AuthenticationResult getAzureAuth (String clientId, String clientKey,String tenantId) throws MalformedURLException, ExecutionException, InterruptedException {
+
+        //TODO the thread pool is not closed.
         ExecutorService service = Executors.newFixedThreadPool(1);
         AuthenticationContext context;
         AuthenticationResult result;

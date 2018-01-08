@@ -70,6 +70,7 @@ public class AzureMonitor extends AManagedMonitor {
                     URL resourcesUrl = new URL(Globals.azureEndpoint + Globals.azureApiSubscriptions + config.get(Globals.subscriptionId) + Globals.azureApiResources +
                             "?" + Globals.azureApiVersion + "=" + config.get(Globals.azureApiVersion) +
                             filterUrl);
+                    //TODO why are you not using HTTP Client library from appd-exts-commons?
                     JsonNode resourcesResponse = AzureRestOperation.doGet(azureAuth,resourcesUrl);
                     if (logger.isDebugEnabled()) { logger.debug("Get Resources REST API Request: " + resourcesUrl.toString());logger.debug("Get Resources Response JSON: " + Utilities.prettifyJson(resourcesResponse)); }
                     ArrayNode resourceElements = (ArrayNode) resourcesResponse.get("value");
@@ -95,10 +96,13 @@ public class AzureMonitor extends AManagedMonitor {
                     }
                     logger.info("Finished gathering Metrics");
                 } catch (IOException e) {
+                    //TODO log the exceptions
                     e.printStackTrace();
                 } catch (InterruptedException e) {
+                    //TODO log the exceptions
                     e.printStackTrace();
                 } catch (ExecutionException e) {
+                    //TODO log the exceptions
                     e.printStackTrace();
                 }
             }
