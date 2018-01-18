@@ -14,7 +14,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.microsoft.aad.adal4j.AuthenticationResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.net.URL;
 import java.net.URLEncoder;
@@ -45,7 +45,7 @@ class AzureMonitorTask implements Runnable {
         }
     }
 
-    private void runTask() throws IOException {
+    private void runTask() {
         TimeZone utc = TimeZone.getTimeZone("UTC");
         Calendar endTime = Calendar.getInstance();
         Calendar startTime = Calendar.getInstance();
@@ -53,11 +53,19 @@ class AzureMonitorTask implements Runnable {
         SimpleDateFormat dateFormatter = new SimpleDateFormat(Globals.azureApiTimeFormat);
         dateFormatter.setTimeZone(utc);
         if (logger.isDebugEnabled()) {logger.debug("JSON Node: " + Utilities.prettifyJson(node));}
-        URL url = new URL(Globals.azureEndpoint + node.get("id").asText() + Globals.azureApiMetrics +
-                "?" + Globals.azureApiVersion + "=" + configuration.getConfigYml().get(Globals.azureMonitorApiVersion) +
-                "&" + Globals.azureApiTimeSpan + "=" + dateFormatter.format(startTime.getTime()) + "/" + dateFormatter.format(endTime.getTime()) +
-                "&" + Globals.metric + "=" + URLEncoder.encode(metric,Globals.urlEncoding));
-        if (logger.isDebugEnabled()) {logger.debug("Get Metrics REST API Request: " + url.toString());}
+        URL url = null;
+        try {
+            url = Utilities.getUrl(Globals.azureEndpoint + node.get("id").asText() + Globals.azureApiMetrics +
+                        "?" + Globals.azureApiVersion + "=" + configuration.getConfigYml().get(Globals.azureMonitorApiVersion) +
+                        "&" + Globals.azureApiTimeSpan + "=" + dateFormatter.format(startTime.getTime()) + "/" + dateFormatter.format(endTime.getTime()) +
+                        "&" + Globals.metric + "=" + URLEncoder.encode(metric,Globals.urlEncoding));
+        } catch (UnsupportedEncodingException e) {
+            logger.error("Failed to encode Metric {} with {}", metric, Globals.urlEncoding, e);
+        }
+        if (logger.isDebugEnabled()) {
+            assert url != null;
+            logger.debug("Get Metrics REST API Request: " + url.toString());}
+        assert url != null;
         extractMetrics(AzureRestOperation.doGet(azureAuth,url));
     }
 

@@ -67,6 +67,7 @@ public class AzureMonitorTest {
        assertTrue(result.getStatusMessage().contains("Metric Upload Complete"));
    }
 
+   @SuppressWarnings("ConstantConditions")
    private void testAzureMonitorTaskRun(String configYml) throws Exception {
        MetricWriteHelper writer = Mockito.mock(MetricWriteHelper.class);
        Runnable runner = Mockito.mock(Runnable.class);
@@ -87,14 +88,15 @@ public class AzureMonitorTest {
        //noinspection unchecked
        List<Map> filters = (List<Map>) conf.getConfigYml().get(Globals.azureApiFilter);
        String filterUrl = Utilities.getFilters(filters);
-       URL url = new URL(Globals.azureEndpoint + Globals.azureApiSubscriptions + conf.getConfigYml().get(Globals.subscriptionId) + Globals.azureApiResources +
+       URL url = Utilities.getUrl(Globals.azureEndpoint + Globals.azureApiSubscriptions + conf.getConfigYml().get(Globals.subscriptionId) + Globals.azureApiResources +
                "?" + Globals.azureApiVersion + "=" + conf.getConfigYml().get(Globals.azureApiVersion) +
                filterUrl);
        ArrayNode resourceElements = (ArrayNode) AzureRestOperation.doGet(azureAuth,url).get("value");
        Utilities.prettifyJson(resourceElements);
        for(JsonNode resourceNode:resourceElements){
-           URL metricDefinitions = new URL(Globals.azureEndpoint + resourceNode.get("id").asText() + Globals.azureApiMetricDefinitions + "?" + Globals.azureApiVersion + "=" + conf.getConfigYml().get(Globals.azureMonitorApiVersion));
+           URL metricDefinitions = Utilities.getUrl(Globals.azureEndpoint + resourceNode.get("id").asText() + Globals.azureApiMetricDefinitions + "?" + Globals.azureApiVersion + "=" + conf.getConfigYml().get(Globals.azureMonitorApiVersion));
            JsonNode metricDefinitionResponse = AzureRestOperation.doGet(azureAuth,metricDefinitions);
+           assert metricDefinitionResponse != null;
            ArrayNode metricDefinitionElements = (ArrayNode) metricDefinitionResponse.get("value");
            for(JsonNode metricDefinitionNode:metricDefinitionElements){
                AzureMonitorTask task = new AzureMonitorTask(conf, resourceNode, azureAuth, metricDefinitionNode.get("name").get("value").asText());
