@@ -4,6 +4,7 @@ import com.appdynamics.extensions.conf.MonitorConfiguration;
 import com.appdynamics.extensions.util.MetricWriteHelper;
 import com.appdynamics.monitors.azure.config.Globals;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.microsoft.aad.adal4j.AuthenticationResult;
 import com.singularity.ee.agent.systemagent.api.TaskOutput;
@@ -12,12 +13,15 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
+import java.io.FileReader;
 import java.math.BigDecimal;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 public class AzureMonitorTest {
@@ -44,23 +48,50 @@ public class AzureMonitorTest {
         }
     }
 
-   @Test
-   public void testAzureMonitorTask(){
-       try {
-           testAzureMonitorTaskRun("src/test/resources/conf/integration-test-config.yml");
-       } catch (Exception e) {
-           e.printStackTrace();
-       }
-   }
+    @Test
+    public void testAzureMonitorTask(){
+        try {
+            testAzureMonitorTaskRun("src/test/resources/conf/integration-test-config.yml");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 
-   @Test
-   public void testAzureMonitorTaskWithEncryption(){
-       try {
-           testAzureMonitorTaskRun("src/test/resources/conf/integration-test-encrypted-config.yml");
-       } catch (Exception e) {
-           e.printStackTrace();
-       }
-   }
+    @Test
+    public void testAzureMonitorTaskWithEncryption(){
+        try {
+            testAzureMonitorTaskRun("src/test/resources/conf/integration-test-encrypted-config.yml");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Test
+    public void testExtractMetrics() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode json = mapper.readTree(new FileReader("src/test/resources/json/metric.json"));
+
+        JsonNode jsonValue = json.get("value");
+        for (JsonNode currentValueNode:jsonValue){
+            String metricNameValue = currentValueNode.get("name").get("value").asText();
+            String metricUnit = currentValueNode.get("unit").asText();
+            String metricType = null;
+            BigDecimal metricValue = null;
+            if(currentValueNode.get("timeseries").has(0)){
+                JsonNode jsonData = currentValueNode.get("timeseries").get(0).get("data");
+                for (JsonNode currentDataNode:jsonData){
+                    if (currentDataNode.has("average")){ metricType = "average"; metricValue = currentDataNode.get("average").decimalValue(); }
+                    else if (currentDataNode.has("total")){ metricType = "total"; metricValue = currentDataNode.get("total").decimalValue(); }
+                    else if (currentDataNode.has("last")){ metricType = "last"; metricValue = currentDataNode.get("last").decimalValue(); }
+                    else if (currentDataNode.has("maximum")){ metricType = "maximum"; metricValue = currentDataNode.get("maximum").decimalValue(); }
+                }
+            }
+            assertNotNull(metricValue);
+            assertNotNull(metricType);
+            assertNotNull(metricUnit);
+            assertNotNull(metricNameValue);
+        }
+    }
 
    private void testAzureMonitorRun(Map<String, String> taskArgs) throws TaskExecutionException {
        TaskOutput result = new AzureMonitor().execute(taskArgs, null);
@@ -108,6 +139,6 @@ public class AzureMonitorTest {
 
    @Test(expected = TaskExecutionException.class)
    public void testAzureMonitorTaskExcecutionException() throws Exception {
-       new AzureMonitor().execute(null, null);
+        new AzureMonitor().execute(null, null);
    }
 }

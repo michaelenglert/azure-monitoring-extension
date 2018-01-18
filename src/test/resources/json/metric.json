@@ -1,0 +1,24 @@
+{
+  "cost" : 0,
+  "timespan" : "2018-01-18T06:57:48Z/2018-01-18T06:59:48Z",
+  "interval" : "PT1M",
+  "value" : [ {
+    "id" : "/subscriptions/subscriptionId/resourceGroups/resourceGroup/providers/Microsoft.Compute/virtualMachines/resourceName/providers/Microsoft.Insights/metrics/Percentage CPU",
+    "type" : "Microsoft.Insights/metrics",
+    "name" : {
+      "value" : "Percentage CPU",
+      "localizedValue" : "Percentage CPU"
+    },
+    "unit" : "Percent",
+    "timeseries" : [ {
+      "metadatavalues" : [ ],
+      "data" : [ {
+        "timeStamp" : "2018-01-18T06:57:00Z",
+        "average" : 1.05
+      }, {
+        "timeStamp" : "2018-01-18T06:58:00Z",
+        "average" : 0.985
+      } ]
+    } ]
+  } ]
+}
