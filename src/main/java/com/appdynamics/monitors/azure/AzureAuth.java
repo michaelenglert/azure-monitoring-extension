@@ -20,13 +20,14 @@ import java.util.concurrent.Future;
 
 class AzureAuth {
     public static AuthenticationResult getAzureAuth (String clientId, String clientKey,String tenantId) throws MalformedURLException, ExecutionException, InterruptedException {
-        ExecutorService service = Executors.newFixedThreadPool(1);
+        ExecutorService service = Executors.newSingleThreadExecutor();
         AuthenticationContext context;
         AuthenticationResult result;
         context = new AuthenticationContext(Globals.azureAuthEndpoint + tenantId, false, service);
         ClientCredential cred = new ClientCredential(clientId, clientKey);
         Future<AuthenticationResult> future = context.acquireToken(Globals.azureEndpoint + "/", cred, null);
         result = future.get();
+        service.shutdown();
 
         return result;
     }
