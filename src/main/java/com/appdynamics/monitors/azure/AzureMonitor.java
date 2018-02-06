@@ -41,7 +41,10 @@ public class AzureMonitor extends AManagedMonitor {
             final String configFilePath = argsMap.get(Globals.configFile);
             conf.setConfigYml(configFilePath);
             conf.setMetricWriter(MetricWriteHelperFactory.create(this));
-            conf.checkIfInitialized(ConfItem.CONFIG_YML, ConfItem.EXECUTOR_SERVICE, ConfItem.METRIC_PREFIX, ConfItem.METRIC_WRITE_HELPER);
+            conf.checkIfInitialized(ConfItem.CONFIG_YML,
+                    ConfItem.EXECUTOR_SERVICE,
+                    ConfItem.METRIC_PREFIX,
+                    ConfItem.METRIC_WRITE_HELPER);
             this.configuration = conf;
         }
     }
@@ -94,7 +97,10 @@ public class AzureMonitor extends AManagedMonitor {
                                         "?" + Globals.azureApiVersion +
                                         "=" + config.get(Globals.serviceFabricResourceApiVersion)));
                         assert serviceFabricResponse != null;
-                        ServiceFabricTask fabricTask = new ServiceFabricTask(configuration, serviceFabricResponse, serviceFabricResponse.get("name").asText());
+                        ServiceFabricTask fabricTask = new ServiceFabricTask(
+                                configuration,
+                                serviceFabricResponse,
+                                serviceFabricResponse.get("name").asText());
                         configuration.getExecutorService().execute(fabricTask);
                     }
                     URL metricDefinitions = Utilities.getUrl(
@@ -105,14 +111,17 @@ public class AzureMonitor extends AManagedMonitor {
                                     "=" + config.get(Globals.azureMonitorApiVersion));
                     JsonNode metricDefinitionResponse = AzureRestOperation.doGet(azureAuth,metricDefinitions);
                     if (logger.isDebugEnabled()) {
-                        logger.debug("Get Metric Definitions REST API Request: " + metricDefinitions.toString());
-                        logger.debug("Get Metric Definitions Response JSON: " + Utilities.prettifyJson(metricDefinitionResponse));
+                        logger.debug("Get Metric Definitions REST API Request: "
+                                + metricDefinitions.toString());
+                        logger.debug("Get Metric Definitions Response JSON: "
+                                + Utilities.prettifyJson(metricDefinitionResponse));
                     }
                     assert metricDefinitionResponse != null;
                     ArrayNode metricDefinitionElements = (ArrayNode) metricDefinitionResponse.get("value");
                     for(JsonNode metricDefinitionNode:metricDefinitionElements){
                         if (metricDefinitionNode.get("isDimensionRequired").asText().equals("true")){
-                            logger.info("Dimensions are currently not supported. Skipping " + metricDefinitionNode.get("id").asText());
+                            logger.info("Dimensions are currently not supported. Skipping "
+                                    + metricDefinitionNode.get("id").asText());
                         }
                         else {
                             AzureMonitorTask monitorTask = new AzureMonitorTask(
