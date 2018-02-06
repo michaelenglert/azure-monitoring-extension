@@ -24,7 +24,7 @@ import java.util.concurrent.Future;
 class AzureAuth {
     private static final Logger logger = LoggerFactory.getLogger(AzureAuth.class);
 
-    public static AuthenticationResult getAzureAuth (String clientId, String clientKey,String tenantId) {
+    public static AuthenticationResult getAzureAuth (String clientId, String clientKey, String tenantId) {
         ExecutorService service = Executors.newSingleThreadExecutor();
         AuthenticationContext context;
         AuthenticationResult result = null;

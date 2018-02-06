@@ -52,13 +52,22 @@ class AzureMonitorTask implements Runnable {
         startTime.add(Calendar.MINUTE, Globals.timeOffset);
         SimpleDateFormat dateFormatter = new SimpleDateFormat(Globals.azureApiTimeFormat);
         dateFormatter.setTimeZone(utc);
-        if (logger.isDebugEnabled()) {logger.debug("JSON Node: " + Utilities.prettifyJson(node));}
+        if (logger.isDebugEnabled()) {
+            logger.debug("JSON Node: " + Utilities.prettifyJson(node));
+        }
         URL url = null;
         try {
-            url = Utilities.getUrl(Globals.azureEndpoint + node.get("id").asText() + Globals.azureApiMetrics +
-                        "?" + Globals.azureApiVersion + "=" + configuration.getConfigYml().get(Globals.azureMonitorApiVersion) +
-                        "&" + Globals.azureApiTimeSpan + "=" + dateFormatter.format(startTime.getTime()) + "/" + dateFormatter.format(endTime.getTime()) +
-                        "&" + Globals.metric + "=" + URLEncoder.encode(metric,Globals.urlEncoding));
+            url = Utilities.getUrl(
+                    Globals.azureEndpoint +
+                    node.get("id").asText() +
+                    Globals.azureApiMetrics +
+                    "?" + Globals.azureApiVersion +
+                    "=" + configuration.getConfigYml().get(Globals.azureMonitorApiVersion) +
+                    "&" + Globals.azureApiTimeSpan +
+                    "=" + dateFormatter.format(startTime.getTime()) +
+                    "/" + dateFormatter.format(endTime.getTime()) +
+                    "&" + Globals.metric +
+                    "=" + URLEncoder.encode(metric,Globals.urlEncoding));
         } catch (UnsupportedEncodingException e) {
             logger.error("Failed to encode Metric {} with {}", metric, Globals.urlEncoding, e);
         }
@@ -81,10 +90,18 @@ class AzureMonitorTask implements Runnable {
             if(currentValueNode.get("timeseries").has(0)){
                 JsonNode jsonData = currentValueNode.get("timeseries").get(0).get("data");
                 for (JsonNode currentDataNode:jsonData){
-                    if (currentDataNode.has("average")){ metricType = "average"; metricValue = currentDataNode.get("average").decimalValue(); }
-                    else if (currentDataNode.has("total")){ metricType = "total"; metricValue = currentDataNode.get("total").decimalValue(); }
-                    else if (currentDataNode.has("last")){ metricType = "last"; metricValue = currentDataNode.get("last").decimalValue(); }
-                    else if (currentDataNode.has("maximum")){ metricType = "maximum"; metricValue = currentDataNode.get("maximum").decimalValue(); }
+                    if (currentDataNode.has("average")){
+                        metricType = "average"; metricValue = currentDataNode.get("average").decimalValue();
+                    }
+                    else if (currentDataNode.has("total")){
+                        metricType = "total"; metricValue = currentDataNode.get("total").decimalValue();
+                    }
+                    else if (currentDataNode.has("last")){
+                        metricType = "last"; metricValue = currentDataNode.get("last").decimalValue();
+                    }
+                    else if (currentDataNode.has("maximum")){
+                        metricType = "maximum"; metricValue = currentDataNode.get("maximum").decimalValue();
+                    }
                 }
                 if (metricId != null && metricNameValue != null && metricType != null && metricUnit != null && metricValue != null){
                     MetricPrinter metricPrinter = new MetricPrinter(configuration.getMetricWriter());
