@@ -103,9 +103,15 @@ class AzureMonitorTask implements Runnable {
                         metricType = "maximum"; metricValue = currentDataNode.get("maximum").decimalValue();
                     }
                 }
-                if (metricId != null && metricNameValue != null && metricType != null && metricUnit != null && metricValue != null){
+                if (metricId != null &&
+                        metricNameValue != null &&
+                        metricType != null &&
+                        metricUnit != null &&
+                        metricValue != null){
                     MetricPrinter metricPrinter = new MetricPrinter(configuration.getMetricWriter());
-                    metricPrinter.reportMetric(configuration.getMetricPrefix() + metricId + metricNameValue, metricValue);
+                    metricPrinter.reportMetric(configuration.getMetricPrefix() +
+                                    metricId +
+                                    metricNameValue, metricValue);
                 }
             }
         }
