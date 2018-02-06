@@ -91,7 +91,7 @@ public class AzureMonitor extends AManagedMonitor {
                 ArrayNode resourceElements = (ArrayNode) resourcesResponse.get("value");
                 for(JsonNode resourceNode:resourceElements){
                     if (resourceNode.get("id").asText().contains("Microsoft.ServiceFabric/clusters")){
-                        JsonNode serviceFabricResponse = AzureRestOperation.doGet(azureAuth,Utilities.getUrl(
+                        JsonNode serviceFabricResponse = AzureRestOperation.doGet(azureAuth, Utilities.getUrl(
                                 Globals.azureEndpoint +
                                         resourceNode.get("id").asText() +
                                         "?" + Globals.azureApiVersion +
