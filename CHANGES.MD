@@ -1,3 +1,7 @@
+### Version 1.1.9.2 (Beta)
+
+* Added Azure Key Vault Support
+
 ### Version 1.1.9.1 (Beta)
 
 * Added Troubleshooting Steps to Readme

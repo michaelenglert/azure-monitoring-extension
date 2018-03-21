@@ -17,8 +17,8 @@ import org.mockito.stubbing.Answer;
 import java.io.FileReader;
 import java.math.BigDecimal;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -133,9 +133,8 @@ public class AzureMonitorTest {
         conf.setMetricWriter(writer);
 
         AzureAuth.getAzureAuth(conf.getConfigYml());
-        //noinspection unchecked
-        List<Map> filters = (List<Map>) conf.getConfigYml().get(Globals.azureApiFilter);
-        String filterUrl = Utilities.getFilters(filters);
+        JsonNode filtersJson = Utilities.getFiltersJson((ArrayList) conf.getConfigYml().get(Globals.azureApiFilter));
+        String filterUrl = Utilities.getFilterUrl(filtersJson);
         URL url = Utilities.getUrl(Globals.azureEndpoint + Globals.azureApiSubscriptions + conf.getConfigYml().get(Globals.subscriptionId) + Globals.azureApiResources +
                 "?" + Globals.azureApiVersion + "=" + conf.getConfigYml().get(Globals.azureApiVersion) +
                 filterUrl);

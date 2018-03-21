@@ -23,7 +23,7 @@ import com.singularity.ee.agent.systemagent.api.exception.TaskExecutionException
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.net.URL;
-import java.util.List;
+import java.util.ArrayList;
 import java.util.Map;
 
 @SuppressWarnings("WeakerAccess")
@@ -70,8 +70,8 @@ public class AzureMonitor extends AManagedMonitor {
             Map<String, ?> config = configuration.getConfigYml();
             if (config != null ) {
                 AzureAuth.getAzureAuth(config);
-                @SuppressWarnings("unchecked") List<Map> filters = (List<Map>) config.get(Globals.azureApiFilter);
-                String filterUrl = Utilities.getFilters(filters);
+                JsonNode filtersJson = Utilities.getFiltersJson((ArrayList) config.get(Globals.azureApiFilter));
+                String filterUrl = Utilities.getFilterUrl(filtersJson);
                 URL resourcesUrl = Utilities.getUrl(Globals.azureEndpoint +
                         Globals.azureApiSubscriptions +
                         config.get(Globals.subscriptionId) +

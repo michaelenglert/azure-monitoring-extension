@@ -17,36 +17,52 @@ import com.google.common.collect.Maps;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
 
 class Utilities {
     private static final Logger logger = LoggerFactory.getLogger(Utilities.class);
 
-    static String getFilters(List<Map> filters) {
+    static JsonNode getFiltersJson(ArrayList filters){
+        ObjectMapper objectMapper = new ObjectMapper();
+        String jsonInString;
+        JsonNode filtersJson = null;
+        try {
+            jsonInString = objectMapper.writeValueAsString(filters);
+            filtersJson = objectMapper.readTree(jsonInString);
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return filtersJson;
+    }
+
+    static String getFilterUrl(JsonNode filtersJson){
         StringBuilder filterUrl = null;
-        if (filters != null && !filters.isEmpty()) {
+        Iterator<JsonNode> iter = filtersJson.iterator();
+        JsonNode currentValueNode;
+        if (!filtersJson.isNull()) {
             filterUrl = new StringBuilder("&$" + Globals.azureApiFilter + "=");
-            Iterator<Map> iter = filters.iterator();
             while (iter.hasNext()) {
-                Map filter = iter.next();
+                currentValueNode = iter.next();
                 try {
                     filterUrl.append(URLEncoder.encode(Globals.filterBy +
                             Globals.filterComOp + "'" +
-                            filter.get(Globals.filterBy) +
+                            currentValueNode.get(Globals.filterBy).asText() +
                             "'", Globals.urlEncoding));
-                    if ( iter.hasNext()) {
+                    if (iter.hasNext()) {
                         filterUrl.append(URLEncoder.encode(Globals.filterLogOp, Globals.urlEncoding));
                     }
+                } catch (UnsupportedEncodingException e) {
+                    e.printStackTrace();
                 }
-                catch (UnsupportedEncodingException e) {
-                    logger.error("Can not process filters {}", filters.toString(), e);
-                }
+
             }
         }
         return filterUrl != null ? filterUrl.toString() : null;
