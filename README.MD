@@ -95,7 +95,7 @@ To achieve this the following configuration in `config.yml` is required:
     # Client ID obtained from the Azure Portal
     clientId: ""
   ```
-The *Key Vault Client Key* can also be encrypted just as the normal *Client Key*.
+The **Key Vault Client Key** can also be encrypted just as the normal **Client Key**.
 
 ## Password Encryption Support
 
