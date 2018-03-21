@@ -18,7 +18,7 @@ Either [Download the Extension from the Github release](https://github.com/micha
 
   `> unzip AzureMonitor-<VERSION>.zip -d <machine agent home>/monitors/`
 
-2. Set up config.yml. At minimum this is:
+2. Set up `config.yml`. At minimum this is:
 
   ```
   # Client ID obtained from the Azure Portal
@@ -76,6 +76,26 @@ Either [Download the Extension from the Github release](https://github.com/micha
 ## Metrics
 
 Metrics available for Azure are maintained within the [Azure Monitor Documentation - Reference - Metrics Supported](https://docs.microsoft.com/en-us/azure/monitoring-and-diagnostics/monitoring-supported-metrics)
+
+## Integration with Azure Key Vault
+
+If you do not want to store the Client Key from the Service Principal that is used to query Resources, Metric Definitions and Metrics you can obtain the Key from an Azure Key Vault Secret.
+To achieve this the following configuration in `config.yml` is required:
+
+  ```
+    # Keyvault Client ID obtained from the Azure Portal
+    keyvaultClientId: ""
+
+    # Keyvault Key for the upper ID obtained from the Azure Portal
+    keyvaultClientKey: ""
+
+    # Keyvault Client Secret Url. From this URL the clientKey will be obtained
+    keyvaultClientSecretUrl: ""
+
+    # Client ID obtained from the Azure Portal
+    clientId: ""
+  ```
+The *Key Vault Client Key* can also be encrypted just as the normal *Client Key*.
 
 ## Password Encryption Support
 
