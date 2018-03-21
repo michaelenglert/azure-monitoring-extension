@@ -45,7 +45,13 @@ class ServiceFabricTask implements Runnable {
         URL url = new URL(node.get("properties").get("managementEndpoint").asText() + Globals.serviceFabricGetClusterHealthChunk +
                 "?" + Globals.azureApiVersion + "=" + configuration.getConfigYml().get(Globals.serviceFabricApiVersion));
         if (logger.isDebugEnabled()) {logger.debug("Get Metrics REST API Request: " + url.toString());}
-        extractMetrics(AzureRestOperation.doPost(url, configuration.getConfigYml().get(Globals.serviceFabricBody).toString()));
+        if (url.toString().matches("https://.*")){
+            logger.info("Skipping Service Fabric Cluster {} because the Authentication Method is currently not supported",
+                    node.get("properties").get("managementEndpoint").asText());
+        }
+        else {
+            extractMetrics(AzureRestOperation.doPost(url, configuration.getConfigYml().get(Globals.serviceFabricBody).toString()));
+        }
     }
 
     private void extractMetrics(JsonNode json){
