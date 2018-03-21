@@ -13,11 +13,14 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.FileReader;
 import java.math.BigDecimal;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -26,6 +29,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 public class AzureMonitorTest {
+    private static final Logger logger = LoggerFactory.getLogger(AzureMonitorTest.class);
 
     @Test
     public void testAzureMonitor(){
@@ -86,6 +90,15 @@ public class AzureMonitorTest {
     }
 
     @Test
+    public void testResourceFilters(){
+        try {
+            testAzureMonitorTaskRun("src/test/resources/conf/integration-test-resourcefilter-config.yml");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Test
     public void testExtractMetrics() throws Exception {
         ObjectMapper mapper = new ObjectMapper();
         JsonNode json = mapper.readTree(new FileReader("src/test/resources/json/metric.json"));
@@ -135,6 +148,7 @@ public class AzureMonitorTest {
         AzureAuth.getAzureAuth(conf.getConfigYml());
         JsonNode filtersJson = Utilities.getFiltersJson((ArrayList) conf.getConfigYml().get(Globals.azureApiFilter));
         String filterUrl = Utilities.getFilterUrl(filtersJson);
+        Map<String,String> resourceFilter = Utilities.getResourceFilter(filtersJson);
         URL url = Utilities.getUrl(Globals.azureEndpoint + Globals.azureApiSubscriptions + conf.getConfigYml().get(Globals.subscriptionId) + Globals.azureApiResources +
                 "?" + Globals.azureApiVersion + "=" + conf.getConfigYml().get(Globals.azureApiVersion) +
                 filterUrl);
@@ -146,8 +160,23 @@ public class AzureMonitorTest {
             assert metricDefinitionResponse != null;
             ArrayNode metricDefinitionElements = (ArrayNode) metricDefinitionResponse.get("value");
             for(JsonNode metricDefinitionNode:metricDefinitionElements){
-                AzureMonitorTask task = new AzureMonitorTask(conf, resourceNode, AuthenticationResults.azureMonitorAuth, metricDefinitionNode.get("name").get("value").asText());
-                conf.getExecutorService().execute(task);
+                if (metricDefinitionNode.get("isDimensionRequired").asText().equals("true")){
+                    logger.info("Dimensions are currently not supported. Skipping "
+                            + metricDefinitionNode.get("id").asText());
+                }
+                else if (Utilities.checkResourceFilter(metricDefinitionNode,resourceFilter)){
+                    logger.info("Ignoring Metric " +
+                            metricDefinitionNode.get("name").get("value").asText() +
+                            " for Resource " + metricDefinitionNode.get("resourceId"));
+                }
+                else {
+                    AzureMonitorTask monitorTask = new AzureMonitorTask(
+                            conf,
+                            resourceNode,
+                            AuthenticationResults.azureMonitorAuth,
+                            metricDefinitionNode.get("name").get("value").asText());
+                    conf.getExecutorService().execute(monitorTask);
+                }
             }
         }
         conf.getExecutorService().awaitTermination(2, TimeUnit.SECONDS);

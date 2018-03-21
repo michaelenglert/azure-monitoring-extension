@@ -1,6 +1,7 @@
 ### Version 1.1.9.2 (Beta)
 
 * Added Azure Key Vault Support
+* Added Exclude Filter
 
 ### Version 1.1.9.1 (Beta)
 

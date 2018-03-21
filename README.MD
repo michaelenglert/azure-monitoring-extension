@@ -19,7 +19,6 @@ Either [Download the Extension from the Github release](https://github.com/micha
   `> unzip AzureMonitor-<VERSION>.zip -d <machine agent home>/monitors/`
 
 2. Set up `config.yml`. At minimum this is:
-
   ```
   # Client ID obtained from the Azure Portal
   clientId: ""
@@ -77,11 +76,20 @@ Either [Download the Extension from the Github release](https://github.com/micha
 
 Metrics available for Azure are maintained within the [Azure Monitor Documentation - Reference - Metrics Supported](https://docs.microsoft.com/en-us/azure/monitoring-and-diagnostics/monitoring-supported-metrics)
 
+## Excluding Metrics for Resources
+
+You can exlcude certain Metrics by adding an exclude within a filter Resource Element. To do this the following configuration in `config.yml` is required:
+  ```
+    filter:
+      - resourceType: "Microsoft.Storage/storageAccounts"
+        exclude: ".*"
+  ```
+A regular expression is needed. Any match will be ignored for that specific resource.
+
 ## Integration with Azure Key Vault
 
 If you do not want to store the Client Key from the Service Principal that is used to query Resources, Metric Definitions and Metrics you can obtain the Key from an Azure Key Vault Secret.
 To achieve this the following configuration in `config.yml` is required:
-
   ```
     # Keyvault Client ID obtained from the Azure Portal
     keyvaultClientId: ""

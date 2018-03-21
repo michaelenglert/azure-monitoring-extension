@@ -72,6 +72,7 @@ public class AzureMonitor extends AManagedMonitor {
                 AzureAuth.getAzureAuth(config);
                 JsonNode filtersJson = Utilities.getFiltersJson((ArrayList) config.get(Globals.azureApiFilter));
                 String filterUrl = Utilities.getFilterUrl(filtersJson);
+                Map<String,String> resourceFilter = Utilities.getResourceFilter(filtersJson);
                 URL resourcesUrl = Utilities.getUrl(Globals.azureEndpoint +
                         Globals.azureApiSubscriptions +
                         config.get(Globals.subscriptionId) +
@@ -119,6 +120,11 @@ public class AzureMonitor extends AManagedMonitor {
                         if (metricDefinitionNode.get("isDimensionRequired").asText().equals("true")){
                             logger.info("Dimensions are currently not supported. Skipping "
                                     + metricDefinitionNode.get("id").asText());
+                        }
+                        else if (Utilities.checkResourceFilter(metricDefinitionNode,resourceFilter)){
+                            logger.info("Ignoring Metric " +
+                                    metricDefinitionNode.get("name").get("value").asText() +
+                                    " for Resource " + metricDefinitionNode.get("resourceId"));
                         }
                         else {
                             AzureMonitorTask monitorTask = new AzureMonitorTask(

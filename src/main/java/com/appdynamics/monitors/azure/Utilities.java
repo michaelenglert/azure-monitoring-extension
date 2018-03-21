@@ -22,8 +22,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
-import java.util.ArrayList;
-import java.util.Iterator;
+import java.util.*;
 
 class Utilities {
     private static final Logger logger = LoggerFactory.getLogger(Utilities.class);
@@ -66,6 +65,29 @@ class Utilities {
             }
         }
         return filterUrl != null ? filterUrl.toString() : null;
+    }
+
+    static Map<String,String> getResourceFilter(JsonNode filtersJson) {
+        Map<String,String> resourceFilter = new HashMap<String, String>();
+        for (JsonNode currentValueNode:filtersJson){
+            if(currentValueNode.has("exclude")){
+                if (!currentValueNode.get("exclude").asText().isEmpty()){
+                    resourceFilter.put(currentValueNode.get(Globals.filterBy).asText(),currentValueNode.get("exclude").asText());
+                }
+            }
+        }
+        return resourceFilter;
+    }
+
+    static Boolean checkResourceFilter(JsonNode jsonNode, Map<String,String> resourceFilter){
+        for(Map.Entry<String, String> entry : resourceFilter.entrySet()){
+            if(jsonNode.get("resourceId").asText().contains(entry.getKey())){
+                if (jsonNode.get("name").get("value").asText().matches(entry.getValue())){
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     static String getDecryptedKey(String encryptedKey, String encryptionKey){
