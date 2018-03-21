@@ -81,9 +81,9 @@ Metrics available for Azure are maintained within the [Azure Monitor Documentati
 
 To avoid setting the clear text password in the config.yml. Please follow the process to encrypt the password and set the encrypted password and the key in the config.yml
 
-* Download the util jar to encrypt the password from [here](https://github.com/Appdynamics/maven-repo/blob/master/releases/com/appdynamics/appd-exts-commons/2.0.0/appd-exts-commons-2.0.0.jar)
+* Download the util jar to encrypt the password from [here](https://github.com/Appdynamics/maven-repo/raw/master/releases/com/appdynamics/appd-exts-commons/2.0.4/appd-exts-commons-2.0.4.jar)
 * Encrypt password from the commandline 
-  * `java -cp appd-exts-commons-<VERSION>.jar com.appdynamics.extensions.crypto.Encryptor myKey myPassword`
+  * `java -cp appd-exts-commons-<VERSION>.jar com.appdynamics.extensions.crypto.Encryptor myEncryptionKey myPasswordToEnrypt`
 
 ## Contributing
 
