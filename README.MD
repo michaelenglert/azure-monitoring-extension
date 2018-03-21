@@ -4,7 +4,7 @@ This extension works only with the standalone machine agent.
 
 ## Use Case
 
-
+Monitor Metrics provided by the Azure Monitor API and let them report into the AppDynamics Metric Browser.
 
 ## Prerequisites
 

@@ -7,25 +7,29 @@ numberOfThreads: 5
 #metricPrefix: "Server|Component:<COMPONENT_ID>|Custom Metrics|AzureMonitor|"
 metricPrefix:  "Custom Metrics|AzureMonitor|"
 
-# Uncomment only if encryption of the clientKey is needed. If this is needed leave clientKey empty
-#encryptionKey: ""
+# Uncomment only if encryption of the Client Key and the Keyvault Key is needed. If this is needed leave clientKey and the keyvaultClientKey empty
+#encryption-key: ""
 #encryptedClientKey: ""
+#encryptedKeyvaultClientKey: ""
 
+# Keyvault Client ID obtained from the Azure Portal
+keyvaultClientId: ""
+# Keyvault Key for the upper ID obtained from the Azure Portal
+keyvaultClientKey: ""
+# Keyvault Client Secret Url. From this URL the clientKey will be obtained
+keyvaultClientSecretUrl: ""
 # Client ID obtained from the Azure Portal
 clientId: ""
-
 # Client Key for the upper ID obtained from the Azure Portal
 clientKey: ""
-
 # Tenant ID obtained from the Azure Portal
 tenantId: ""
-
 # Subscription ID obtained from the Azure Portal
 subscriptionId: ""
 
 api-version: "2017-05-10"
-
 monitor-api-version: "2017-05-01-preview"
+keyvault-api-version: "2016-10-01"
 
 # Include Filter - These Resource Types will be monitored:
 filter:

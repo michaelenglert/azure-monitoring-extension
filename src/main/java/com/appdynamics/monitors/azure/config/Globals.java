@@ -10,6 +10,7 @@ package com.appdynamics.monitors.azure.config;
 
 public class Globals {
     public static final String azureAuthEndpoint = "https://login.microsoftonline.com/";
+    public static final String azureKeyvaultEndpoint = "https://vault.azure.net";
     public static final String azureEndpoint = "https://management.azure.com";
     public static final String azureApiVersion = "api-version";
     public static final String azureMonitorApiVersion = "monitor-api-version";
@@ -30,9 +31,13 @@ public class Globals {
     public static final String tenantId = "tenantId";
     public static final String metric = "metric";
     public static final String clientKey = "clientKey";
+    public static final String keyvaultClientId = "keyvaultClientId";
+    public static final String keyvaultClientKey = "keyvaultClientKey";
+    public static final String keyvaultClientSecretUrl = "keyvaultClientSecretUrl";
     public static final String subscriptionId = "subscriptionId";
     public static final String encryptionKey = "encryption-key";
     public static final String encryptedClientKey = "encryptedClientKey";
+    public static final String encryptedKeyvaultClientKey = "encryptedKeyvaultClientKey";
     public static final String passwordEncrypted = "password-encrypted";
     public static final int timeOffset = -2;
     public static final String serviceFabricGetClusterHealthChunk = "/$/GetClusterHealthChunk";

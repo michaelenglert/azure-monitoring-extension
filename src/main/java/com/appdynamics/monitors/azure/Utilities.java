@@ -13,7 +13,6 @@ import com.appdynamics.monitors.azure.config.Globals;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.base.Strings;
 import com.google.common.collect.Maps;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,20 +52,11 @@ class Utilities {
         return filterUrl != null ? filterUrl.toString() : null;
     }
 
-    static String getClientKey(Map<String, ?> config) {
-        String clientKey = (String) config.get(Globals.clientKey);
-        if (!Strings.isNullOrEmpty(clientKey)) {
-            return clientKey;
-        }
-        String encryptionKey = (String) config.get(Globals.encryptionKey);
-        String encryptedClientKey = (String) config.get(Globals.encryptedClientKey);
-        if (!Strings.isNullOrEmpty(encryptionKey) && !Strings.isNullOrEmpty(encryptedClientKey)) {
-            java.util.Map<String, String> cryptoMap = Maps.newHashMap();
-            cryptoMap.put(Globals.passwordEncrypted, encryptedClientKey);
-            cryptoMap.put(Globals.encryptionKey, encryptionKey);
-            return CryptoUtil.getPassword(cryptoMap);
-        }
-        return null;
+    static String getDecryptedKey(String encryptedKey, String encryptionKey){
+        java.util.Map<String, String> cryptoMap = Maps.newHashMap();
+        cryptoMap.put(Globals.passwordEncrypted, encryptedKey);
+        cryptoMap.put(Globals.encryptionKey, encryptionKey);
+        return CryptoUtil.getPassword(cryptoMap);
     }
 
     static URL getUrl(String input){

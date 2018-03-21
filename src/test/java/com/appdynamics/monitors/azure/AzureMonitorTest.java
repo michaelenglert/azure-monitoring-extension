@@ -2,17 +2,18 @@ package com.appdynamics.monitors.azure;
 
 import com.appdynamics.extensions.conf.MonitorConfiguration;
 import com.appdynamics.extensions.util.MetricWriteHelper;
+import com.appdynamics.monitors.azure.config.AuthenticationResults;
 import com.appdynamics.monitors.azure.config.Globals;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.microsoft.aad.adal4j.AuthenticationResult;
 import com.singularity.ee.agent.systemagent.api.TaskOutput;
 import com.singularity.ee.agent.systemagent.api.exception.TaskExecutionException;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
+
 import java.io.FileReader;
 import java.math.BigDecimal;
 import java.net.URL;
@@ -67,6 +68,24 @@ public class AzureMonitorTest {
     }
 
     @Test
+    public void testAzureMonitorTaskWithKeyvault(){
+        try {
+            testAzureMonitorTaskRun("src/test/resources/conf/integration-test-keyvault-config.yml");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Test
+    public void testAzureMonitorTaskWithKeyvaultWithEncryption(){
+        try {
+            testAzureMonitorTaskRun("src/test/resources/conf/integration-test-keyvault-encrypted-config.yml");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Test
     public void testExtractMetrics() throws Exception {
         ObjectMapper mapper = new ObjectMapper();
         JsonNode json = mapper.readTree(new FileReader("src/test/resources/json/metric.json"));
@@ -113,25 +132,22 @@ public class AzureMonitorTest {
         }).when(writer).printMetric(Mockito.anyString(), Mockito.any(BigDecimal.class), Mockito.anyString());
         conf.setMetricWriter(writer);
 
-        AuthenticationResult azureAuth = AzureAuth.getAzureAuth(
-                (String) conf.getConfigYml().get(Globals.clientId),
-                Utilities.getClientKey(conf.getConfigYml()),
-                (String) conf.getConfigYml().get(Globals.tenantId));
+        AzureAuth.getAzureAuth(conf.getConfigYml());
         //noinspection unchecked
         List<Map> filters = (List<Map>) conf.getConfigYml().get(Globals.azureApiFilter);
         String filterUrl = Utilities.getFilters(filters);
         URL url = Utilities.getUrl(Globals.azureEndpoint + Globals.azureApiSubscriptions + conf.getConfigYml().get(Globals.subscriptionId) + Globals.azureApiResources +
                 "?" + Globals.azureApiVersion + "=" + conf.getConfigYml().get(Globals.azureApiVersion) +
                 filterUrl);
-        ArrayNode resourceElements = (ArrayNode) AzureRestOperation.doGet(azureAuth,url).get("value");
+        ArrayNode resourceElements = (ArrayNode) AzureRestOperation.doGet(AuthenticationResults.azureMonitorAuth,url).get("value");
         Utilities.prettifyJson(resourceElements);
         for(JsonNode resourceNode:resourceElements){
             URL metricDefinitions = Utilities.getUrl(Globals.azureEndpoint + resourceNode.get("id").asText() + Globals.azureApiMetricDefinitions + "?" + Globals.azureApiVersion + "=" + conf.getConfigYml().get(Globals.azureMonitorApiVersion));
-            JsonNode metricDefinitionResponse = AzureRestOperation.doGet(azureAuth,metricDefinitions);
+            JsonNode metricDefinitionResponse = AzureRestOperation.doGet(AuthenticationResults.azureMonitorAuth,metricDefinitions);
             assert metricDefinitionResponse != null;
             ArrayNode metricDefinitionElements = (ArrayNode) metricDefinitionResponse.get("value");
             for(JsonNode metricDefinitionNode:metricDefinitionElements){
-                AzureMonitorTask task = new AzureMonitorTask(conf, resourceNode, azureAuth, metricDefinitionNode.get("name").get("value").asText());
+                AzureMonitorTask task = new AzureMonitorTask(conf, resourceNode, AuthenticationResults.azureMonitorAuth, metricDefinitionNode.get("name").get("value").asText());
                 conf.getExecutorService().execute(task);
             }
         }

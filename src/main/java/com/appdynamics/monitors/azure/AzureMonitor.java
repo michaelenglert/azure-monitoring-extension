@@ -12,10 +12,10 @@ import com.appdynamics.extensions.conf.MonitorConfiguration;
 import com.appdynamics.extensions.util.MetricWriteHelper;
 import com.appdynamics.extensions.util.MetricWriteHelperFactory;
 import com.appdynamics.extensions.conf.MonitorConfiguration.ConfItem;
+import com.appdynamics.monitors.azure.config.AuthenticationResults;
 import com.appdynamics.monitors.azure.config.Globals;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.microsoft.aad.adal4j.AuthenticationResult;
 import com.singularity.ee.agent.systemagent.api.AManagedMonitor;
 import com.singularity.ee.agent.systemagent.api.TaskExecutionContext;
 import com.singularity.ee.agent.systemagent.api.TaskOutput;
@@ -69,10 +69,7 @@ public class AzureMonitor extends AManagedMonitor {
         public void run () {
             Map<String, ?> config = configuration.getConfigYml();
             if (config != null ) {
-                AuthenticationResult azureAuth = AzureAuth.getAzureAuth(
-                        (String) config.get(Globals.clientId),
-                        Utilities.getClientKey(config),
-                        (String) config.get(Globals.tenantId));
+                AzureAuth.getAzureAuth(config);
                 @SuppressWarnings("unchecked") List<Map> filters = (List<Map>) config.get(Globals.azureApiFilter);
                 String filterUrl = Utilities.getFilters(filters);
                 URL resourcesUrl = Utilities.getUrl(Globals.azureEndpoint +
@@ -82,7 +79,7 @@ public class AzureMonitor extends AManagedMonitor {
                         "?" + Globals.azureApiVersion +
                         "=" + config.get(Globals.azureApiVersion) +
                         filterUrl);
-                JsonNode resourcesResponse = AzureRestOperation.doGet(azureAuth,resourcesUrl);
+                JsonNode resourcesResponse = AzureRestOperation.doGet(AuthenticationResults.azureMonitorAuth,resourcesUrl);
                 if (logger.isDebugEnabled()) {
                     logger.debug("Get Resources REST API Request: " + resourcesUrl.toString());
                     logger.debug("Get Resources Response JSON: " + Utilities.prettifyJson(resourcesResponse));
@@ -91,7 +88,7 @@ public class AzureMonitor extends AManagedMonitor {
                 ArrayNode resourceElements = (ArrayNode) resourcesResponse.get("value");
                 for(JsonNode resourceNode:resourceElements){
                     if (resourceNode.get("id").asText().contains("Microsoft.ServiceFabric/clusters")){
-                        JsonNode serviceFabricResponse = AzureRestOperation.doGet(azureAuth, Utilities.getUrl(
+                        JsonNode serviceFabricResponse = AzureRestOperation.doGet(AuthenticationResults.azureMonitorAuth, Utilities.getUrl(
                                 Globals.azureEndpoint +
                                         resourceNode.get("id").asText() +
                                         "?" + Globals.azureApiVersion +
@@ -109,7 +106,7 @@ public class AzureMonitor extends AManagedMonitor {
                                     Globals.azureApiMetricDefinitions +
                                     "?" + Globals.azureApiVersion +
                                     "=" + config.get(Globals.azureMonitorApiVersion));
-                    JsonNode metricDefinitionResponse = AzureRestOperation.doGet(azureAuth,metricDefinitions);
+                    JsonNode metricDefinitionResponse = AzureRestOperation.doGet(AuthenticationResults.azureMonitorAuth,metricDefinitions);
                     if (logger.isDebugEnabled()) {
                         logger.debug("Get Metric Definitions REST API Request: "
                                 + metricDefinitions.toString());
@@ -127,7 +124,7 @@ public class AzureMonitor extends AManagedMonitor {
                             AzureMonitorTask monitorTask = new AzureMonitorTask(
                                     configuration,
                                     resourceNode,
-                                    azureAuth,
+                                    AuthenticationResults.azureMonitorAuth,
                                     metricDefinitionNode.get("name").get("value").asText());
                             configuration.getExecutorService().execute(monitorTask);
                         }
