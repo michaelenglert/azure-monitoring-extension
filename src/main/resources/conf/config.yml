@@ -85,6 +85,10 @@ serviceFabricApiVersion: "3.0"
 serviceFabricResourceApiVersion: "2016-09-01"
 serviceFabricBody: '{"ApplicationFilters":[{"HealthStateFilter":65535}],"NodeFilters":[{"HealthStateFilter":65535}]}'
 
+# Certificate Authentication will be used if the Service Fabric Management Endpoint is https://...
+serviceFabricCert: 'monitors/AzureMonitor/your-cert.pfx'
+serviceFabricPassphrase: ''
+
 # Service Fabric Health States. These States will be translated to numbers according to the table below
 # The Defaults are derived from here https://docs.microsoft.com/en-us/rest/api/servicefabric/sfclient-model-healthinformation
 serviceFabricHealthStates:

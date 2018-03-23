@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.Map;
 
 class ServiceFabricTask implements Runnable {
-    private static final Logger logger = LoggerFactory.getLogger(AzureMonitorTask.class);
+    private static final Logger logger = LoggerFactory.getLogger(ServiceFabricTask.class);
     private final MonitorConfiguration configuration;
     private final JsonNode node;
     private final String metric;
@@ -41,16 +41,21 @@ class ServiceFabricTask implements Runnable {
     }
 
     private void runTask() throws IOException {
+        String serviceFabricBody = configuration.getConfigYml().get(Globals.serviceFabricBody).toString();
+        String serviceFabricCert = configuration.getConfigYml().get(Globals.serviceFabricCert).toString();
+        String serviceFabricPassphrase = configuration.getConfigYml().get(Globals.serviceFabricPassphrase).toString();
+
         if (logger.isDebugEnabled()) {logger.debug("JSON Node: " + Utilities.prettifyJson(node));}
         URL url = new URL(node.get("properties").get("managementEndpoint").asText() + Globals.serviceFabricGetClusterHealthChunk +
                 "?" + Globals.azureApiVersion + "=" + configuration.getConfigYml().get(Globals.serviceFabricApiVersion));
         if (logger.isDebugEnabled()) {logger.debug("Get Metrics REST API Request: " + url.toString());}
-        if (url.toString().matches("https://.*")){
-            logger.info("Skipping Service Fabric Cluster {} because the Authentication Method is currently not supported",
-                    node.get("properties").get("managementEndpoint").asText());
+        if (url.toString().matches("https://.*") && !serviceFabricCert.isEmpty()){
+            //logger.info("Skipping Service Fabric Cluster {} because the Authentication Method is currently not supported",
+            //        node.get("properties").get("managementEndpoint").asText());
+            extractMetrics(AzureRestOperation.doSecurePost(url, serviceFabricBody, serviceFabricCert, serviceFabricPassphrase));
         }
         else {
-            extractMetrics(AzureRestOperation.doPost(url, configuration.getConfigYml().get(Globals.serviceFabricBody).toString()));
+            extractMetrics(AzureRestOperation.doPost(url, serviceFabricBody));
         }
     }
 

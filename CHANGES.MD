@@ -1,3 +1,7 @@
+### Version 1.1.9.3 (Beta)
+
+* Added Service Fabric Certificate Authentication
+
 ### Version 1.1.9.2 (Beta)
 
 * Added Azure Key Vault Support

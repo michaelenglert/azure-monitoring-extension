@@ -105,6 +105,15 @@ To achieve this the following configuration in `config.yml` is required:
   ```
 The **Key Vault Client Key** can also be encrypted just as the normal **Client Key**.
 
+## Service Fabric Authentication
+
+Currently the Extension support Certificate based Authentication to gather the Health Status of your Service Fabric Clusters. To use this those properties in `config.yml` have to be used:
+
+  ```
+    serviceFabricCert: 'monitors/AzureMonitor/your-cert.pfx'
+    serviceFabricPassphrase: ''
+  ```
+
 ## Password Encryption Support
 
 To avoid setting the clear text password in the config.yml. Please follow the process to encrypt the password and set the encrypted password and the key in the config.yml
