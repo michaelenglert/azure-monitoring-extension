@@ -1,3 +1,7 @@
+### Version 1.2
+
+* Released v1.2
+
 ### Version 1.1.9.3 (Beta)
 
 * Added Service Fabric Certificate Authentication
@@ -10,7 +14,7 @@
 ### Version 1.1.9.1 (Beta)
 
 * Added Troubleshooting Steps to Readme
-* Added Service Fabric Support 
+* Added Service Fabric Support
   * **!!Authentication is not yet implemented due to the lack of a test environment!!**
 
 ### Version 1.1.9  (Beta)
