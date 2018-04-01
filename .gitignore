@@ -3,3 +3,4 @@
 *.iml
 src/test/resources/conf/integration-*-config.yml
 src/test/resources/cert/integration-*.pfx
+.DS_Store
