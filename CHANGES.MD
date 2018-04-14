@@ -1,3 +1,7 @@
+### Version 1.2.1
+
+* Error handling adjustments
+
 ### Version 1.2
 
 * Released v1.2

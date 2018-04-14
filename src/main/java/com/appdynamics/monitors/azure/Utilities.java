@@ -35,9 +35,9 @@ class Utilities {
             jsonInString = objectMapper.writeValueAsString(filters);
             filtersJson = objectMapper.readTree(jsonInString);
         } catch (JsonProcessingException e) {
-            e.printStackTrace();
+            logger.error("Error while parsing ArrayList {} to Json", filters.toString(), e);
         } catch (IOException e) {
-            e.printStackTrace();
+            logger.error("IO Error while processing ArrayList {}", filters.toString(), e);
         }
         return filtersJson;
     }
@@ -59,7 +59,7 @@ class Utilities {
                         filterUrl.append(URLEncoder.encode(Globals.filterLogOp, Globals.urlEncoding));
                     }
                 } catch (UnsupportedEncodingException e) {
-                    e.printStackTrace();
+                    logger.error("Unsupported Encoding Error while adding Json Node {} to {}", currentValueNode.asText(), filterUrl.toString(), e);
                 }
 
             }
