@@ -1,3 +1,7 @@
+### Version 1.2.2
+
+* Fixed config.yml change bug
+
 ### Version 1.2.1
 
 * Error handling adjustments

@@ -34,19 +34,17 @@ public class AzureMonitor extends AManagedMonitor {
     public AzureMonitor() { logger.info(String.format("Using Azure Monitor Version [%s]", getImplementationVersion())); }
 
     private void initialize(Map<String, String> argsMap) {
-        if (configuration == null) {
-            MetricWriteHelper metricWriteHelper = MetricWriteHelperFactory.create(this);
-            MonitorConfiguration conf = new MonitorConfiguration(Globals.defaultMetricPrefix,
-                    new TaskRunnable(), metricWriteHelper);
-            final String configFilePath = argsMap.get(Globals.configFile);
-            conf.setConfigYml(configFilePath);
-            conf.setMetricWriter(MetricWriteHelperFactory.create(this));
-            conf.checkIfInitialized(ConfItem.CONFIG_YML,
-                    ConfItem.EXECUTOR_SERVICE,
-                    ConfItem.METRIC_PREFIX,
-                    ConfItem.METRIC_WRITE_HELPER);
-            this.configuration = conf;
-        }
+        MetricWriteHelper metricWriteHelper = MetricWriteHelperFactory.create(this);
+        MonitorConfiguration conf = new MonitorConfiguration(Globals.defaultMetricPrefix,
+                new TaskRunnable(), metricWriteHelper);
+        final String configFilePath = argsMap.get(Globals.configFile);
+        conf.setConfigYml(configFilePath);
+        conf.setMetricWriter(MetricWriteHelperFactory.create(this));
+        conf.checkIfInitialized(ConfItem.CONFIG_YML,
+                ConfItem.EXECUTOR_SERVICE,
+                ConfItem.METRIC_PREFIX,
+                ConfItem.METRIC_WRITE_HELPER);
+        this.configuration = conf;
     }
 
     public TaskOutput execute(Map<String, String> map, TaskExecutionContext taskExecutionContext) throws TaskExecutionException {
