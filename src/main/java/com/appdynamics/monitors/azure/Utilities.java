@@ -82,7 +82,7 @@ class Utilities {
     static Boolean checkResourceFilter(JsonNode jsonNode, Map<String,String> resourceFilter){
         for(Map.Entry<String, String> entry : resourceFilter.entrySet()){
             if(jsonNode.get("resourceId").asText().contains(entry.getKey())){
-                if (jsonNode.get("name").get("value").asText().matches(entry.getValue())){
+                if (jsonNode.get("id").asText().matches(entry.getValue())){
                     return true;
                 }
             }

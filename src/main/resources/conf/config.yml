@@ -32,7 +32,7 @@ monitor-api-version: "2017-05-01-preview"
 keyvault-api-version: "2016-10-01"
 
 # Include Filter - These Resource Types will be monitored:
-# The exclude Element will ignore by matching the regular expression against the Metric Name from the Metric Definition Response
+# The exclude Element will ignore by matching the regular expression against the Metric Definition ID from the Metric Definition Response
 filter:
   - resourceType: "Microsoft.AnalysisServices/servers"
 #   exclude: ".*"

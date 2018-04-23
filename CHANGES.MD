@@ -1,3 +1,7 @@
+### Version 1.2.3
+
+* Changed Exclude Filter Strategy
+
 ### Version 1.2.2
 
 * Fixed config.yml change bug
