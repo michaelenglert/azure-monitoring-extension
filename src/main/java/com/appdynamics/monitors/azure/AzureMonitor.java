@@ -99,40 +99,44 @@ public class AzureMonitor extends AManagedMonitor {
                                 serviceFabricResponse.get("name").asText());
                         configuration.getExecutorService().execute(fabricTask);
                     }
-                    URL metricDefinitions = Utilities.getUrl(
-                            Globals.azureEndpoint +
-                                    resourceNode.get("id").asText() +
-                                    Globals.azureApiMetricDefinitions +
-                                    "?" + Globals.azureApiVersion +
-                                    "=" + config.get(Globals.azureMonitorApiVersion));
-                    JsonNode metricDefinitionResponse = AzureRestOperation.doGet(AuthenticationResults.azureMonitorAuth,metricDefinitions);
-                    if (logger.isDebugEnabled()) {
-                        logger.debug("Get Metric Definitions REST API Request: "
-                                + metricDefinitions.toString());
-                        logger.debug("Get Metric Definitions Response JSON: "
-                                + Utilities.prettifyJson(metricDefinitionResponse));
+                    else {
+                        URL metricDefinitions = Utilities.getUrl(
+                                Globals.azureEndpoint +
+                                        resourceNode.get("id").asText() +
+                                        Globals.azureApiMetricDefinitions +
+                                        "?" + Globals.azureApiVersion +
+                                        "=" + config.get(Globals.azureMonitorApiVersion));
+
+                        JsonNode metricDefinitionResponse = AzureRestOperation.doGet(AuthenticationResults.azureMonitorAuth,metricDefinitions);
+                        if (logger.isDebugEnabled()) {
+                            logger.debug("Get Metric Definitions REST API Request: "
+                                    + metricDefinitions.toString());
+                            logger.debug("Get Metric Definitions Response JSON: "
+                                    + Utilities.prettifyJson(metricDefinitionResponse));
+                        }
+                        assert metricDefinitionResponse != null;
+                        ArrayNode metricDefinitionElements = (ArrayNode) metricDefinitionResponse.get("value");
+                        for(JsonNode metricDefinitionNode:metricDefinitionElements){
+                            if (metricDefinitionNode.get("isDimensionRequired").asText().equals("true")){
+                                logger.info("Dimensions are currently not supported. Skipping "
+                                        + metricDefinitionNode.get("id").asText());
+                            }
+                            else if (Utilities.checkResourceFilter(metricDefinitionNode,resourceFilter)){
+                                logger.info("Ignoring Metric " +
+                                        metricDefinitionNode.get("name").get("value").asText() +
+                                        " for Resource " + metricDefinitionNode.get("resourceId"));
+                            }
+                            else {
+                                AzureMonitorTask monitorTask = new AzureMonitorTask(
+                                        configuration,
+                                        resourceNode,
+                                        AuthenticationResults.azureMonitorAuth,
+                                        metricDefinitionNode.get("name").get("value").asText());
+                                configuration.getExecutorService().execute(monitorTask);
+                            }
+                        }
                     }
-                    assert metricDefinitionResponse != null;
-                    ArrayNode metricDefinitionElements = (ArrayNode) metricDefinitionResponse.get("value");
-                    for(JsonNode metricDefinitionNode:metricDefinitionElements){
-                        if (metricDefinitionNode.get("isDimensionRequired").asText().equals("true")){
-                            logger.info("Dimensions are currently not supported. Skipping "
-                                    + metricDefinitionNode.get("id").asText());
-                        }
-                        else if (Utilities.checkResourceFilter(metricDefinitionNode,resourceFilter)){
-                            logger.info("Ignoring Metric " +
-                                    metricDefinitionNode.get("name").get("value").asText() +
-                                    " for Resource " + metricDefinitionNode.get("resourceId"));
-                        }
-                        else {
-                            AzureMonitorTask monitorTask = new AzureMonitorTask(
-                                    configuration,
-                                    resourceNode,
-                                    AuthenticationResults.azureMonitorAuth,
-                                    metricDefinitionNode.get("name").get("value").asText());
-                            configuration.getExecutorService().execute(monitorTask);
-                        }
-                    }
+
                 }
                     logger.info("Finished gathering Metrics");
             }
