@@ -12,7 +12,7 @@ Monitor Metrics provided by the Azure Monitor/Service Fabric APIs and let them r
 
 ## Installation
 
-Either [Download the Extension from the Github release](https://github.com/michaelenglert/azure-monitoring-extension/releases/tag/v1.1) or Build from Source.
+Either [Download the Extension from the AppDynamics Marketplace](https://www.appdynamics.com/community/exchange/azure-monitoring-extension/) or [Download the Extension from the Github releases](https://github.com/michaelenglert/azure-monitoring-extension/releases/latest) or Build from Source.
 
 1. Deploy the `AzureMonitor-<VERSION>.zip` file into the `<machine agent home>/monitors` directory.
 
@@ -78,7 +78,7 @@ Metrics available for Azure are maintained within the [Azure Monitor Documentati
 
 ## Excluding Metrics for Resources
 
-You can exlcude certain Metrics by adding an exclude within a filter Resource Element. To do this the following configuration in `config.yml` is required:
+You can exclude certain Metrics by adding an exclude within a filter Resource Element. To do this the following configuration in `config.yml` is required:
   ```
     filter:
       - resourceType: "Microsoft.Storage/storageAccounts"
@@ -107,7 +107,7 @@ The **Key Vault Client Key** can also be encrypted just as the normal **Client K
 
 ## Service Fabric Authentication
 
-Currently the Extension support Certificate based Authentication to gather the Health Status of your Service Fabric Clusters. To use this those properties in `config.yml` have to be used:
+Currently the Extension supports Certificate based Authentication to gather the Health Status of your Service Fabric Clusters. To use this those properties in `config.yml` have to be used:
 
   ```
     serviceFabricCert: 'monitors/AzureMonitor/your-cert.pfx'
@@ -116,10 +116,10 @@ Currently the Extension support Certificate based Authentication to gather the H
 
 ## Password Encryption Support
 
-To avoid setting the clear text password in the config.yml. Please follow the process to encrypt the password and set the encrypted password and the key in the config.yml
+To avoid setting the clear text password in the `config.yml`. Please follow the process to encrypt the password and set the encrypted password and the key in the `config.yml`.
 
-* Download the util jar to encrypt the password from [here](https://github.com/Appdynamics/maven-repo/raw/master/releases/com/appdynamics/appd-exts-commons/2.0.4/appd-exts-commons-2.0.4.jar)
-* Encrypt password from the commandline 
+* Download the util jar to encrypt the password from [here](https://github.com/Appdynamics/maven-repo/raw/master/releases/com/appdynamics/appd-exts-commons/2.1.0/appd-exts-commons-2.1.0.jar)
+* Encrypt password from the commandline
   * `java -cp appd-exts-commons-<VERSION>.jar com.appdynamics.extensions.crypto.Encryptor myEncryptionKey myPasswordToEnrypt`
 
 ## Contributing
@@ -129,13 +129,11 @@ Always feel free to fork and contribute any changes directly via [GitHub](https:
 ## Troubleshooting
 
 1. Verify Machine Agent Data: Please start the Machine Agent without the extension and make sure that it reports data. Verify that the machine agent status is UP and it is reporting Hardware Metrics.
-2. config.yml: Validate the file [here](http://www.yamllint.com/)
+2. `config.yml`: Validate the file [here](http://www.yamllint.com/).
 3. Metric Limit: Please start the machine agent with the argument `-Dappdynamics.agent.maxMetrics=5000` if there is a metric limit reached error in the logs. If you don't see the expected metrics, this could be the cause.
 4. Check Logs: There could be some obvious errors in the machine agent logs. Please take a look.
-5. `The config cannot be null` error.
-   This usually happenes when on a windows machine in monitor.xml you give config.yaml file path with linux file path separator */*. Use Windows file path separator *\* e.g. *monitors\Monitor\config.yaml*. For Windows, please specify
-   the complete path
-6. Collect Debug Logs: Edit the file, *<MachineAgent>/conf/logging/log4j.xml* and update the level of the appender *com.appdynamics* and *com.singularity* to debug. Let it run for 5-10 minutes and attach the logs to a support ticket.
+5. `The config cannot be null` error: This usually happens when on a windows machine in `monitor.xml` you give `config.yml` file path with linux file path separator `/`. Use Windows file path separator `\` e.g. `monitors\Monitor\config.yml`. For Windows, please specify the complete path.
+6. Collect Debug Logs: Edit the file, `<MachineAgent>/conf/logging/log4j.xml` and update the level of the appender `com.appdynamics` and `com.singularity` to debug. Let it run for 5-10 minutes and attach the logs to a support ticket.
 
 ## Support
 
