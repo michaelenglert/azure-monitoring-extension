@@ -1,3 +1,26 @@
+### Version 1.9.9.0 (Alpha)
+
+* Changed to latest Extension Framework
+* Usage of Azure Java SDK Bindings
+* Change of Filter Strategy
+* Change of Config Structure
+
+### Version 1.2.3
+
+* Changed Exclude Filter Strategy
+
+### Version 1.2.2
+
+* Fixed config.yml change bug
+
+### Version 1.2.1
+
+* Error handling adjustments
+
+### Version 1.2
+
+* Released v1.2
+
 ### Version 1.1.9.3 (Beta)
 
 * Added Service Fabric Certificate Authentication
