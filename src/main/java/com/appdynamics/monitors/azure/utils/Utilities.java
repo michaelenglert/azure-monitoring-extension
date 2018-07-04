@@ -34,16 +34,4 @@ public class Utilities {
         }
         return url;
     }
-
-// --Commented out by Inspection START (7/4/18 6:16 PM):
-//    static String prettifyJson(JsonNode json) {
-//        ObjectMapper mapper = new ObjectMapper();
-//        try {
-//            return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(json);
-//        } catch (JsonProcessingException e) {
-//            logger.error("Can not process JSON {}", json.asText(), e);
-//        }
-//        return null;
-//    }
-// --Commented out by Inspection STOP (7/4/18 6:16 PM)
 }
