@@ -12,7 +12,7 @@ Monitor Metrics provided by the Azure Monitor API and let them report into the A
 
 ## Installation
 
-Either [Download the Extension from the Github release](https://github.com/michaelenglert/azure-monitoring-extension/releases/tag/v1.1) or Build from Source.
+Either [Download the Extension from the Github release](https://github.com/michaelenglert/azure-monitoring-extension/releases) or Build from Source.
 
 1. Deploy the `AzureMonitor-<VERSION>.zip` file into the `<machine agent home>/monitors` directory.
 
@@ -20,17 +20,11 @@ Either [Download the Extension from the Github release](https://github.com/micha
 
 2. Set up `config.yml`. At minimum this is:
   ```
-  # Client ID obtained from the Azure Portal
-  clientId: ""
-
-  # Client Key for the upper ID obtained from the Azure Portal
-  clientKey: ""
-
-  # Tenant ID obtained from the Azure Portal
-  tenantId: ""
-
-  # Subscription ID obtained from the Azure Portal
-  subscriptionId: ""
+subscriptions:
+  - subscriptionId: ""
+    tenantId: ""
+    clientId: ""
+    clientKey: ""
   ```
   Details for the Setup can be found in the [Azure - Resource Manager - Howto - Control Access - Create Service Principal - Azure Portal](https://docs.microsoft.com/en-us/azure/azure-resource-manager/resource-group-create-service-principal-portal)
 
@@ -78,30 +72,36 @@ Metrics available for Azure are maintained within the [Azure Monitor Documentati
 
 ## Excluding Metrics for Resources
 
-You can exlcude certain Metrics by adding an exclude within a filter Resource Element. To do this the following configuration in `config.yml` is required:
+You can exlcude certain Metrics by adding an include within a filter Resource Element. To do this the following configuration in `config.yml` is required:
   ```
-    filter:
-      - resourceType: "Microsoft.Storage/storageAccounts"
-        exclude: ".*"
+subscriptions:
+  - subscriptionId: ""
+    tenantId: ""
+    clientId: ""
+    clientKey: ""
+    resourceGroups:             # You can Filter with regex on any of these Types.
+      - resourceGroup: ".*"     # If you have multiple entries per Type be sure they do not overlap --> This will produce duplicate Metrics
+        resourceTypes:
+          - resourceType: ".*"
+            resources:
+              - resource: ".*"
+                metrics:
+                  - metric: ".*"
   ```
-A regular expression is needed. Any match will be ignored for that specific resource.
+A regular expression is needed. Any match will be included for that specific type.
 
 ## Integration with Azure Key Vault
 
 If you do not want to store the Client Key from the Service Principal that is used to query Resources, Metric Definitions and Metrics you can obtain the Key from an Azure Key Vault Secret.
 To achieve this the following configuration in `config.yml` is required:
   ```
-    # Keyvault Client ID obtained from the Azure Portal
-    keyvaultClientId: ""
-
-    # Keyvault Key for the upper ID obtained from the Azure Portal
-    keyvaultClientKey: ""
-
-    # Keyvault Client Secret Url. From this URL the clientKey will be obtained
-    keyvaultClientSecretUrl: ""
-
-    # Client ID obtained from the Azure Portal
+subscriptions:
+  - subscriptionId: ""
+    tenantId: ""
     clientId: ""
+    keyvaultClientId: ""
+    keyvaultClientKey: ""
+    keyvaultClientSecretUrl: ""
   ```
 The **Key Vault Client Key** can also be encrypted just as the normal **Client Key**.
 
@@ -110,7 +110,9 @@ The **Key Vault Client Key** can also be encrypted just as the normal **Client K
 Currently the Extension support Certificate based Authentication to gather the Health Status of your Service Fabric Clusters. To use this those properties in `config.yml` have to be used:
 
   ```
-    serviceFabricCert: 'monitors/AzureMonitor/your-cert.pfx'
+serviceFabrics:
+  - serviceFabric: "ServiceFabric"
+    serviceFabricCert: 'src/test/resources/cert/integration-test-sf.pfx'
     serviceFabricPassphrase: ''
   ```
 

@@ -21,81 +21,32 @@ metricPrefix:  "Custom Metrics|AzureMonitor|"
 # Keyvault Client Secret Url. From this URL the clientKey will be obtained
 subscriptions:
   - subscriptionId: ""
+    subscriptionName: ""  # If Empty the subscriptionId will be used for the Metric Path
     tenantId: ""
     clientId: ""
     clientKey: ""
     keyvaultClientId: ""
     keyvaultClientKey: ""
     keyvaultClientSecretUrl: ""
-    api-version: "2017-05-10"
-    monitor-api-version: "2017-05-01-preview"
-    keyvault-api-version: "2016-10-01"
-    resourceTypes:
-      - resourceType: "Microsoft.AnalysisServices/servers"
+    resourceGroups:             # You can Filter with regex on any of these Types.
+      - resourceGroup: ".*"     # If you have multiple entries per Type be sure they do not overlap --> This will produce duplicate Metrics
+        resourceTypes:
+          - resourceType: ".*"
+            resources:
+              - resource: ".*"
+                metrics:
+                  - metric: ".*"
 
-# Include Filter - These Resource Types will be monitored:
-# The exclude Element will ignore by matching the regular expression against the Metric Name from the Metric Definition Response
-filter:
-  - resourceType: "Microsoft.AnalysisServices/servers"
-#   exclude: ".*"
-  - resourceType: "Microsoft.ApiManagement/service"
-  - resourceType: "Microsoft.Automation/automationAccounts"
-  - resourceType: "Microsoft.Batch/batchAccounts"
-  - resourceType: "Microsoft.Cache/redis"
-  - resourceType: "Microsoft.ClassicCompute/virtualMachines"
-  - resourceType: "Microsoft.CognitiveServices/accounts"
-  - resourceType: "Microsoft.Compute/virtualMachines"
-  - resourceType: "Microsoft.Compute/virtualMachineScaleSets"
-  - resourceType: "Microsoft.Compute/virtualMachineScaleSets/virtualMachines"
-  - resourceType: "Microsoft.CustomerInsights/hubs"
-  - resourceType: "Microsoft.DataLakeAnalytics/accounts"
-  - resourceType: "Microsoft.DataLakeStore/accounts"
-  - resourceType: "Microsoft.DBforMySQL/servers"
-  - resourceType: "Microsoft.DBforPostgreSQL/servers"
-  - resourceType: "Microsoft.Devices/IotHubs"
-  - resourceType: "Microsoft.Devices/provisioningServices"
-  - resourceType: "Microsoft.DocumentDB/databaseAccounts"
-  - resourceType: "Microsoft.EventHub/namespaces"
-  - resourceType: "Microsoft.Insights/AutoscaleSettings"
-  - resourceType: "Microsoft.Logic/workflows"
-#  - resourceType: "Microsoft.Network/loadBalancers" -- Produced Errors during Test
-  - resourceType: "Microsoft.Network/publicIPAddresses"
-  - resourceType: "Microsoft.Network/applicationGateways"
-  - resourceType: "Microsoft.Network/virtualNetworkGateways"
-  - resourceType: "Microsoft.Network/expressRouteCircuits"
-  - resourceType: "Microsoft.Network/trafficManagerProfiles"
-  - resourceType: "Microsoft.NotificationHubs/Namespaces/NotificationHubs"
-  - resourceType: "Microsoft.Search/searchServices"
-  - resourceType: "Microsoft.ServiceBus/namespaces"
-  - resourceType: "Microsoft.Sql/servers/databases"
-  - resourceType: "Microsoft.Sql/servers/elasticPools"
-  - resourceType: "Microsoft.Sql/servers"
-  - resourceType: "Microsoft.Storage/storageAccounts"
-  - resourceType: "Microsoft.Storage/storageAccounts/blobServices"
-  - resourceType: "Microsoft.Storage/storageAccounts/tableServices"
-  - resourceType: "Microsoft.Storage/storageAccounts/queueServices"
-  - resourceType: "Microsoft.Storage/storageAccounts/fileServices"
-  - resourceType: "Microsoft.StreamAnalytics/streamingjobs"
-  - resourceType: "Microsoft.Web/serverfarms"
-  - resourceType: "Microsoft.Web/sites"
-  - resourceType: "Microsoft.Web/sites/slots"
-  - resourceType: "Microsoft.Web/hostingEnvironments/multiRolePools"
-  - resourceType: "Microsoft.Web/hostingEnvironments/workerPools"
-  - resourceType: "Microsoft.ServiceFabric/clusters"
-
-serviceFabricApiVersion: "3.0"
-serviceFabricResourceApiVersion: "2016-09-01"
-serviceFabricBody: '{"ApplicationFilters":[{"HealthStateFilter":65535}],"NodeFilters":[{"HealthStateFilter":65535}]}'
-
-# Certificate Authentication will be used if the Service Fabric Management Endpoint is https://...
-serviceFabricCert: 'monitors/AzureMonitor/your-cert.pfx'
-serviceFabricPassphrase: ''
-
-# Service Fabric Health States. These States will be translated to numbers according to the table below
-# The Defaults are derived from here https://docs.microsoft.com/en-us/rest/api/servicefabric/sfclient-model-healthinformation
-serviceFabricHealthStates:
-  - Invalid: 0
-    Ok: 1
-    Warning: 2
-    Error: 3
-    Unknown: 65535
+serviceFabrics:
+  - serviceFabric: "ServiceFabric"
+    serviceFabricApiVersion: "3.0"
+    serviceFabricResourceApiVersion: "2016-09-01"
+    serviceFabricBody: '{"ApplicationFilters":[{"HealthStateFilter":65535}],"NodeFilters":[{"HealthStateFilter":65535}]}'
+    serviceFabricCert: 'src/test/resources/cert/integration-test-sf.pfx'
+    serviceFabricPassphrase: ''
+    serviceFabricHealthStates:
+      - Invalid: 0
+        Ok: 1
+        Warning: 2
+        Error: 3
+        Unknown: 65535
