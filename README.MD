@@ -74,18 +74,18 @@ Metrics available for Azure are maintained within the [Azure Monitor Documentati
 
 You can exlcude certain Metrics by adding an include within a filter Resource Element. To do this the following configuration in `config.yml` is required:
   ```
-subscriptions:
-  - subscriptionId: ""
-    tenantId: ""
-    clientId: ""
-    clientKey: ""
-    resourceGroups:             # You can Filter with regex on any of these Types.
-      - resourceGroup: ".*"     # If you have multiple entries per Type be sure they do not overlap --> This will produce duplicate Metrics
-        resourceTypes:
-          - resourceType: ".*"
-            resources:
-              - resource: ".*"
-                metrics:
+  subscriptions:
+    - subscriptionId: ""
+      tenantId: ""
+      clientId: ""
+      clientKey: ""
+      resourceGroups:             # You can Filter with regex on any of these Types.
+        - resourceGroup: ".*"     # If you have multiple entries per Type be sure they do not overlap --> This will produce duplicate Metrics
+          resourceTypes:
+            - resourceType: ".*"
+              resources:
+                - resource: ".*"
+                  metrics:
                   - metric: ".*"
   ```
 A regular expression is needed. Any match will be included for that specific type.
@@ -95,13 +95,13 @@ A regular expression is needed. Any match will be included for that specific typ
 If you do not want to store the Client Key from the Service Principal that is used to query Resources, Metric Definitions and Metrics you can obtain the Key from an Azure Key Vault Secret.
 To achieve this the following configuration in `config.yml` is required:
   ```
-subscriptions:
-  - subscriptionId: ""
-    tenantId: ""
-    clientId: ""
-    keyvaultClientId: ""
-    keyvaultClientKey: ""
-    keyvaultClientSecretUrl: ""
+  subscriptions:
+    - subscriptionId: ""
+      tenantId: ""
+      clientId: ""
+      keyvaultClientId: ""
+      keyvaultClientKey: ""
+      keyvaultClientSecretUrl: ""
   ```
 The **Key Vault Client Key** can also be encrypted just as the normal **Client Key**.
 
@@ -110,10 +110,10 @@ The **Key Vault Client Key** can also be encrypted just as the normal **Client K
 Currently the Extension support Certificate based Authentication to gather the Health Status of your Service Fabric Clusters. To use this those properties in `config.yml` have to be used:
 
   ```
-serviceFabrics:
-  - serviceFabric: "ServiceFabric"
-    serviceFabricCert: 'src/test/resources/cert/integration-test-sf.pfx'
-    serviceFabricPassphrase: ''
+  serviceFabrics:
+    - serviceFabric: "ServiceFabric"
+      serviceFabricCert: 'src/test/resources/cert/integration-test-sf.pfx'
+      serviceFabricPassphrase: ''
   ```
 
 ## Password Encryption Support
