@@ -80,8 +80,8 @@ You can exlcude certain Metrics by adding an include within a filter Resource El
       clientId: ""
       clientKey: ""
       resourceGroups:             # You can Filter with regex on any of these Types.
-        - resourceGroup: ".*"     # If you have multiple entries per Type be sure they do not overlap --> This will produce duplicate Metrics
-          resourceTypes:
+        - resourceGroup: ".*"     # If you have multiple entries per Type be sure they do not overlap
+          resourceTypes:          # --> This will produce duplicate Metrics!!!!
             - resourceType: ".*"
               resources:
                 - resource: ".*"
