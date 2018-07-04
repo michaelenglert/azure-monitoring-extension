@@ -8,120 +8,99 @@
 
 package com.appdynamics.monitors.azure;
 
-import com.appdynamics.extensions.conf.MonitorConfiguration;
-import com.appdynamics.monitors.azure.config.Globals;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.microsoft.aad.adal4j.AuthenticationResult;
-import org.slf4j.Logger;
+import com.appdynamics.extensions.AMonitorTaskRunnable;
+import com.appdynamics.extensions.MetricWriteHelper;
+import com.appdynamics.extensions.conf.MonitorContextConfiguration;
+import com.appdynamics.extensions.util.AssertUtils;
+import com.appdynamics.monitors.azure.metrics.AzureMetrics;
+import com.appdynamics.monitors.azure.utils.Constants;
+import com.microsoft.azure.PagedList;
+import com.microsoft.azure.management.Azure;
+import com.microsoft.azure.management.resources.GenericResource;
 import org.slf4j.LoggerFactory;
-import java.io.UnsupportedEncodingException;
-import java.math.BigDecimal;
-import java.net.URL;
-import java.net.URLEncoder;
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.TimeZone;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CountDownLatch;
 
-class AzureMonitorTask implements Runnable {
-    private static final Logger logger = LoggerFactory.getLogger(AzureMonitorTask.class);
-    private final MonitorConfiguration configuration;
-    private final JsonNode node;
-    private final AuthenticationResult azureAuth;
-    private final String metric;
+@SuppressWarnings("unchecked")
+class AzureMonitorTask implements AMonitorTaskRunnable{
+    private static final org.slf4j.Logger logger = LoggerFactory.getLogger(AzureMonitorTask.class);
+    private final MonitorContextConfiguration configuration;
+    private final MetricWriteHelper metricWriteHelper;
+    private final Map<String, ?> subscription;
+    private final List<Map<String,?>>  resourceGroupFilters;
+    private final CountDownLatch countDownLatch;
 
-    AzureMonitorTask(MonitorConfiguration configuration, JsonNode node, AuthenticationResult azureAuth, String metric) {
-        this.configuration = configuration;
-        this.node = node;
-        this.azureAuth = azureAuth;
-        this.metric = metric;
+    AzureMonitorTask(MonitorContextConfiguration configuration, MetricWriteHelper metricWriteHelper, Map<String, ?> subscription, CountDownLatch countDownLatch) {
+         this.configuration = configuration;
+         this.metricWriteHelper = metricWriteHelper;
+         this.subscription = subscription;
+         this.countDownLatch = countDownLatch;
+         resourceGroupFilters = (List<Map<String,?>>) subscription.get("resourceGroups");
+         AssertUtils.assertNotNull(resourceGroupFilters, "The 'resourceGroupFilters' section in config.yml is either null or empty");
     }
 
+    @Override
+    public void onTaskComplete() {
+        logger.info("Task Complete");
+    }
+
+    @Override
     public void run() {
         try {
             runTask();
-        } catch (Exception e) {
-            configuration.getMetricWriter().registerError(e.getMessage(), e);
-            logger.error("Error while running the task", e);
+        }
+        catch(Exception e){
+            logger.error(e.getMessage());
+        }
+        finally {
+            countDownLatch.countDown();
         }
     }
+    private void runTask(){
+        AzureAuth.getAzureAuth(subscription);
+        Azure azure = Constants.azureMonitorAuth.withSubscription(subscription.get("subscriptionId").toString());
+        String subscriptionName;
+        PagedList<GenericResource> resources = azure.genericResources().list();
+        CountDownLatch countDownLatchAzure = new CountDownLatch(resources.size());
 
-    private void runTask() {
-        TimeZone utc = TimeZone.getTimeZone("UTC");
-        Calendar endTime = Calendar.getInstance();
-        Calendar startTime = Calendar.getInstance();
-        startTime.add(Calendar.MINUTE, Globals.timeOffset);
-        SimpleDateFormat dateFormatter = new SimpleDateFormat(Globals.azureApiTimeFormat);
-        dateFormatter.setTimeZone(utc);
-        if (logger.isDebugEnabled()) {
-            logger.debug("JSON Node: " + Utilities.prettifyJson(node));
+        if (subscription.containsKey("subscriptionName")){
+            subscriptionName = subscription.get("subscriptionName").toString();
         }
-        URL url = null;
-        try {
-            url = Utilities.getUrl(
-                    Globals.azureEndpoint +
-                    node.get("id").asText() +
-                    Globals.azureApiMetrics +
-                    "?" + Globals.azureApiVersion +
-                    "=" + configuration.getConfigYml().get(Globals.azureMonitorApiVersion) +
-                    "&" + Globals.azureApiTimeSpan +
-                    "=" + dateFormatter.format(startTime.getTime()) +
-                    "/" + dateFormatter.format(endTime.getTime()) +
-                    "&" + Globals.metric +
-                    "=" + URLEncoder.encode(metric,Globals.urlEncoding));
-        } catch (UnsupportedEncodingException e) {
-            logger.error("Failed to encode Metric {} with {}", metric, Globals.urlEncoding, e);
+        else {
+            subscriptionName = subscription.get("subscriptionId").toString();
         }
-        if (logger.isDebugEnabled()) {
-            assert url != null;
-            logger.debug("Get Metrics REST API Request: " + url.toString());}
-        assert url != null;
-        extractMetrics(AzureRestOperation.doGet(azureAuth,url));
-    }
 
-    private void extractMetrics(JsonNode json){
-        if (logger.isDebugEnabled()) {logger.debug("Get Metrics Response JSON: " + Utilities.prettifyJson(json));}
-        JsonNode jsonValue = json.get("value");
-        for (JsonNode currentValueNode:jsonValue){
-            String metricId = extractMetridId(currentValueNode.get("id").asText());
-            String metricNameValue = currentValueNode.get("name").get("value").asText();
-            String metricUnit = currentValueNode.get("unit").asText();
-            String metricType = null;
-            BigDecimal metricValue = null;
-            if(currentValueNode.get("timeseries").has(0)){
-                JsonNode jsonData = currentValueNode.get("timeseries").get(0).get("data");
-                for (JsonNode currentDataNode:jsonData){
-                    if (currentDataNode.has("average")){
-                        metricType = "average"; metricValue = currentDataNode.get("average").decimalValue();
+        for (Map<String, ?> resourceGroupFilter : resourceGroupFilters) {
+            List<Map<String, ?>> resourceTypeFilters = (List<Map<String, ?>>) resourceGroupFilter.get("resourceTypes");
+            for (Map<String, ?> resourceTypeFilter : resourceTypeFilters) {
+                List<Map<String, ?>> resourceFilters = (List<Map<String, ?>>) resourceTypeFilter.get("resources");
+                for (Map<String, ?> resourceFilter : resourceFilters) {
+                    String currentResourceGroupFilter = resourceGroupFilter.get("resourceGroup").toString();
+                    for (GenericResource resource : resources) {
+                        String currentResourceFilter = resourceFilter.get("resource").toString();
+                        String currentResourceTypeFilter = resourceTypeFilter.get("resourceType").toString();
+                        AzureMetrics azureMetricsTask = new AzureMetrics(
+                                resourceFilter,
+                                currentResourceGroupFilter,
+                                currentResourceFilter,
+                                currentResourceTypeFilter,
+                                resource,
+                                subscriptionName,
+                                countDownLatchAzure,
+                                metricWriteHelper,
+                                azure,
+                                configuration.getMetricPrefix());
+                        configuration.getContext().getExecutorService().execute("AzureMetrics", azureMetricsTask);
                     }
-                    else if (currentDataNode.has("total")){
-                        metricType = "total"; metricValue = currentDataNode.get("total").decimalValue();
-                    }
-                    else if (currentDataNode.has("last")){
-                        metricType = "last"; metricValue = currentDataNode.get("last").decimalValue();
-                    }
-                    else if (currentDataNode.has("maximum")){
-                        metricType = "maximum"; metricValue = currentDataNode.get("maximum").decimalValue();
-                    }
-                }
-                if (metricId != null &&
-                        metricNameValue != null &&
-                        metricType != null &&
-                        metricUnit != null &&
-                        metricValue != null){
-                    MetricPrinter metricPrinter = new MetricPrinter(configuration.getMetricWriter());
-                    metricPrinter.reportMetric(configuration.getMetricPrefix() +
-                                    metricId +
-                                    metricNameValue, metricValue);
                 }
             }
         }
-    }
 
-    private static String extractMetridId(String fullId){
-        String metricId;
-        String[] metricIdSegments = fullId.split("resourceGroups")[1].split("providers/Microsoft\\.");
-        metricId = metricIdSegments[0]+metricIdSegments[1];
-        metricId = metricId.replace("/","|");
-        return metricId;
+        try{
+            countDownLatchAzure.await();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 }

@@ -12,24 +12,26 @@ metricPrefix:  "Custom Metrics|AzureMonitor|"
 #encryptedClientKey: ""
 #encryptedKeyvaultClientKey: ""
 
-# Keyvault Client ID obtained from the Azure Portal
-keyvaultClientId: ""
-# Keyvault Key for the upper ID obtained from the Azure Portal
-keyvaultClientKey: ""
-# Keyvault Client Secret Url. From this URL the clientKey will be obtained
-keyvaultClientSecretUrl: ""
-# Client ID obtained from the Azure Portal
-clientId: ""
-# Client Key for the upper ID obtained from the Azure Portal
-clientKey: ""
-# Tenant ID obtained from the Azure Portal
-tenantId: ""
 # Subscription ID obtained from the Azure Portal
-subscriptionId: ""
-
-api-version: "2017-05-10"
-monitor-api-version: "2017-05-01-preview"
-keyvault-api-version: "2016-10-01"
+# Tenant ID obtained from the Azure Portal
+# Client ID obtained from the Azure Portal
+# Client Key for the upper ID obtained from the Azure Portal
+# Keyvault Client ID obtained from the Azure Portal
+# Keyvault Key for the upper ID obtained from the Azure Portal
+# Keyvault Client Secret Url. From this URL the clientKey will be obtained
+subscriptions:
+  - subscriptionId: ""
+    tenantId: ""
+    clientId: ""
+    clientKey: ""
+    keyvaultClientId: ""
+    keyvaultClientKey: ""
+    keyvaultClientSecretUrl: ""
+    api-version: "2017-05-10"
+    monitor-api-version: "2017-05-01-preview"
+    keyvault-api-version: "2016-10-01"
+    resourceTypes:
+      - resourceType: "Microsoft.AnalysisServices/servers"
 
 # Include Filter - These Resource Types will be monitored:
 # The exclude Element will ignore by matching the regular expression against the Metric Name from the Metric Definition Response

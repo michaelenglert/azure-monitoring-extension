@@ -8,139 +8,43 @@
 
 package com.appdynamics.monitors.azure;
 
-import com.appdynamics.extensions.conf.MonitorConfiguration;
-import com.appdynamics.extensions.util.MetricWriteHelper;
-import com.appdynamics.extensions.util.MetricWriteHelperFactory;
-import com.appdynamics.extensions.conf.MonitorConfiguration.ConfItem;
-import com.appdynamics.monitors.azure.config.AuthenticationResults;
-import com.appdynamics.monitors.azure.config.Globals;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.singularity.ee.agent.systemagent.api.AManagedMonitor;
-import com.singularity.ee.agent.systemagent.api.TaskExecutionContext;
-import com.singularity.ee.agent.systemagent.api.TaskOutput;
-import com.singularity.ee.agent.systemagent.api.exception.TaskExecutionException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import java.net.URL;
-import java.util.ArrayList;
+import com.appdynamics.extensions.ABaseMonitor;
+import com.appdynamics.extensions.TasksExecutionServiceProvider;
+import com.appdynamics.extensions.util.AssertUtils;
+import com.appdynamics.monitors.azure.utils.Constants;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
 
-@SuppressWarnings("WeakerAccess")
-public class AzureMonitor extends AManagedMonitor {
-    private static final Logger logger = LoggerFactory.getLogger(AzureMonitor.class);
-    private MonitorConfiguration configuration;
+@SuppressWarnings({"WeakerAccess", "unchecked"})
+public class AzureMonitor extends ABaseMonitor {
 
-    public AzureMonitor() { logger.info(String.format("Using Azure Monitor Version [%s]", getImplementationVersion())); }
+    @Override
+    protected String getDefaultMetricPrefix() {
+        return Constants.DEFAULT_METRIC_PREFIX;
+    }
 
-    private void initialize(Map<String, String> argsMap) {
-        if (configuration == null) {
-            MetricWriteHelper metricWriteHelper = MetricWriteHelperFactory.create(this);
-            MonitorConfiguration conf = new MonitorConfiguration(Globals.defaultMetricPrefix,
-                    new TaskRunnable(), metricWriteHelper);
-            final String configFilePath = argsMap.get(Globals.configFile);
-            conf.setConfigYml(configFilePath);
-            conf.setMetricWriter(MetricWriteHelperFactory.create(this));
-            conf.checkIfInitialized(ConfItem.CONFIG_YML,
-                    ConfItem.EXECUTOR_SERVICE,
-                    ConfItem.METRIC_PREFIX,
-                    ConfItem.METRIC_WRITE_HELPER);
-            this.configuration = conf;
+    @Override
+    public String getMonitorName() {
+        return "Azure Monitoring Extension";
+    }
+
+    @Override
+    protected void doRun(TasksExecutionServiceProvider tasksExecutionServiceProvider) {
+        List<Map<String,?>> subscriptions = (List<Map<String,?>>)getContextConfiguration().getConfigYml().get("subscriptions");
+        AssertUtils.assertNotNull(subscriptions, "The 'subscriptions' section in config.yml is not initialised");
+        for (Map<String, ?> subscription : subscriptions) {
+            AzureMonitorTask task = new AzureMonitorTask(getContextConfiguration(), tasksExecutionServiceProvider.getMetricWriteHelper(), subscription, new CountDownLatch(getTaskCount()));
+            tasksExecutionServiceProvider.submit(subscription.get("subscriptionId").toString(),task);
         }
     }
 
-    public TaskOutput execute(Map<String, String> map, TaskExecutionContext taskExecutionContext) throws TaskExecutionException {
-        try{
-            if(map != null){
-                if (logger.isDebugEnabled()) {logger.debug("The raw arguments are {}", map);}
-                initialize(map);
-                configuration.executeTask();
-                return new TaskOutput("Azure Monitor Metric Upload Complete");
-            }
-        }
-        catch(Exception e) {
-            logger.error("Failed to execute the Azure monitoring task", e);
-        }
-        throw new TaskExecutionException("Azure monitoring task completed with failures.");
-
+    @Override
+    protected int getTaskCount() {
+        List<Map<String,?>> subscriptions = (List<Map<String,?>>)getContextConfiguration().getConfigYml().get("subscriptions");
+        List<Map<String,?>> serviceFabrics = (List<Map<String,?>>)getContextConfiguration().getConfigYml().get("serviceFabrics");
+        AssertUtils.assertNotNull(subscriptions, "The 'subscriptions' section in config.yml is not initialised");
+        AssertUtils.assertNotNull(serviceFabrics, "The 'serviceFabrics' section in config.yml is not initialised");
+        return subscriptions.size() + serviceFabrics.size();
     }
-
-    private class TaskRunnable implements Runnable {
-        public void run () {
-            Map<String, ?> config = configuration.getConfigYml();
-            if (config != null ) {
-                AzureAuth.getAzureAuth(config);
-                JsonNode filtersJson = Utilities.getFiltersJson((ArrayList) config.get(Globals.azureApiFilter));
-                String filterUrl = Utilities.getFilterUrl(filtersJson);
-                Map<String,String> resourceFilter = Utilities.getResourceFilter(filtersJson);
-                URL resourcesUrl = Utilities.getUrl(Globals.azureEndpoint +
-                        Globals.azureApiSubscriptions +
-                        config.get(Globals.subscriptionId) +
-                        Globals.azureApiResources +
-                        "?" + Globals.azureApiVersion +
-                        "=" + config.get(Globals.azureApiVersion) +
-                        filterUrl);
-                JsonNode resourcesResponse = AzureRestOperation.doGet(AuthenticationResults.azureMonitorAuth,resourcesUrl);
-                if (logger.isDebugEnabled()) {
-                    logger.debug("Get Resources REST API Request: " + resourcesUrl.toString());
-                    logger.debug("Get Resources Response JSON: " + Utilities.prettifyJson(resourcesResponse));
-                }
-                assert resourcesResponse != null;
-                ArrayNode resourceElements = (ArrayNode) resourcesResponse.get("value");
-                for(JsonNode resourceNode:resourceElements){
-                    if (resourceNode.get("id").asText().contains("Microsoft.ServiceFabric/clusters")){
-                        JsonNode serviceFabricResponse = AzureRestOperation.doGet(AuthenticationResults.azureMonitorAuth, Utilities.getUrl(
-                                Globals.azureEndpoint +
-                                        resourceNode.get("id").asText() +
-                                        "?" + Globals.azureApiVersion +
-                                        "=" + config.get(Globals.serviceFabricResourceApiVersion)));
-                        assert serviceFabricResponse != null;
-                        ServiceFabricTask fabricTask = new ServiceFabricTask(
-                                configuration,
-                                serviceFabricResponse,
-                                serviceFabricResponse.get("name").asText());
-                        configuration.getExecutorService().execute(fabricTask);
-                    }
-                    URL metricDefinitions = Utilities.getUrl(
-                            Globals.azureEndpoint +
-                                    resourceNode.get("id").asText() +
-                                    Globals.azureApiMetricDefinitions +
-                                    "?" + Globals.azureApiVersion +
-                                    "=" + config.get(Globals.azureMonitorApiVersion));
-                    JsonNode metricDefinitionResponse = AzureRestOperation.doGet(AuthenticationResults.azureMonitorAuth,metricDefinitions);
-                    if (logger.isDebugEnabled()) {
-                        logger.debug("Get Metric Definitions REST API Request: "
-                                + metricDefinitions.toString());
-                        logger.debug("Get Metric Definitions Response JSON: "
-                                + Utilities.prettifyJson(metricDefinitionResponse));
-                    }
-                    assert metricDefinitionResponse != null;
-                    ArrayNode metricDefinitionElements = (ArrayNode) metricDefinitionResponse.get("value");
-                    for(JsonNode metricDefinitionNode:metricDefinitionElements){
-                        if (metricDefinitionNode.get("isDimensionRequired").asText().equals("true")){
-                            logger.info("Dimensions are currently not supported. Skipping "
-                                    + metricDefinitionNode.get("id").asText());
-                        }
-                        else if (Utilities.checkResourceFilter(metricDefinitionNode,resourceFilter)){
-                            logger.info("Ignoring Metric " +
-                                    metricDefinitionNode.get("name").get("value").asText() +
-                                    " for Resource " + metricDefinitionNode.get("resourceId"));
-                        }
-                        else {
-                            AzureMonitorTask monitorTask = new AzureMonitorTask(
-                                    configuration,
-                                    resourceNode,
-                                    AuthenticationResults.azureMonitorAuth,
-                                    metricDefinitionNode.get("name").get("value").asText());
-                            configuration.getExecutorService().execute(monitorTask);
-                        }
-                    }
-                }
-                    logger.info("Finished gathering Metrics");
-            }
-            else { logger.error("The config.yml is not loaded due to previous errors.The task will not run"); }
-        }
-    }
-
-    private static String getImplementationVersion() { return AzureMonitor.class.getPackage().getImplementationTitle(); }
 }

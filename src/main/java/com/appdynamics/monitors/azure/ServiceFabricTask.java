@@ -8,89 +8,107 @@
 
 package com.appdynamics.monitors.azure;
 
-import com.appdynamics.extensions.conf.MonitorConfiguration;
-import com.appdynamics.monitors.azure.config.Globals;
+import com.appdynamics.extensions.AMonitorTaskRunnable;
+import com.appdynamics.extensions.MetricWriteHelper;
+import com.appdynamics.extensions.conf.MonitorContextConfiguration;
+import com.appdynamics.extensions.metrics.Metric;
+import com.appdynamics.monitors.azure.utils.Constants;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.google.common.collect.Lists;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.io.IOException;
-import java.math.BigDecimal;
 import java.net.URL;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
-class ServiceFabricTask implements Runnable {
+class ServiceFabricTask implements AMonitorTaskRunnable {
     private static final Logger logger = LoggerFactory.getLogger(ServiceFabricTask.class);
-    private final MonitorConfiguration configuration;
-    private final JsonNode node;
-    private final String metric;
+    private final MonitorContextConfiguration configuration;
+    private final MetricWriteHelper metricWriteHelper;
+    private final Map<String, ?> serviceFabric;
+    private final String managementEndpoint;
+    private final String metricName;
+    private List<Metric> finalMetricList;
 
-    ServiceFabricTask(MonitorConfiguration configuration, JsonNode node, String metric) {
+    private ServiceFabricTask(MonitorContextConfiguration configuration, MetricWriteHelper metricWriteHelper, Map<String, ?> serviceFabric, String managementEndpoint, String metricName) {
         this.configuration = configuration;
-        this.node = node;
-        this.metric = metric;
+        this.metricWriteHelper = metricWriteHelper;
+        this.serviceFabric = serviceFabric;
+        this.managementEndpoint = managementEndpoint;
+        this.metricName = metricName;
     }
 
+    @Override
+    public void onTaskComplete() {
+        logger.info("Task Complete");
+    }
+
+    @Override
     public void run() {
         try {
             runTask();
         } catch (Exception e) {
-            configuration.getMetricWriter().registerError(e.getMessage(), e);
+            metricWriteHelper.registerError(e.getMessage(), e);
             logger.error("Error while running the task", e);
         }
     }
 
     private void runTask() throws IOException {
-        String serviceFabricBody = configuration.getConfigYml().get(Globals.serviceFabricBody).toString();
-        String serviceFabricCert = configuration.getConfigYml().get(Globals.serviceFabricCert).toString();
-        String serviceFabricPassphrase = configuration.getConfigYml().get(Globals.serviceFabricPassphrase).toString();
+        String serviceFabricBody = serviceFabric.get("serviceFabricBody").toString();
+        String serviceFabricCert = serviceFabric.get("serviceFabricCert").toString();
+        String serviceFabricPassphrase = serviceFabric.get("serviceFabricPassphrase").toString();
+        finalMetricList = Lists.newArrayList();
 
-        if (logger.isDebugEnabled()) {logger.debug("JSON Node: " + Utilities.prettifyJson(node));}
-        URL url = new URL(node.get("properties").get("managementEndpoint").asText() + Globals.serviceFabricGetClusterHealthChunk +
-                "?" + Globals.azureApiVersion + "=" + configuration.getConfigYml().get(Globals.serviceFabricApiVersion));
+        URL url = new URL(managementEndpoint + "/$/GetClusterHealthChunk" +
+                "?api-version=" + serviceFabric.get("serviceFabricApiVersion"));
         if (logger.isDebugEnabled()) {logger.debug("Get Metrics REST API Request: " + url.toString());}
         if (url.toString().matches("https://.*") && !serviceFabricCert.isEmpty()){
-            //logger.info("Skipping Service Fabric Cluster {} because the Authentication Method is currently not supported",
-            //        node.get("properties").get("managementEndpoint").asText());
             extractMetrics(AzureRestOperation.doSecurePost(url, serviceFabricBody, serviceFabricCert, serviceFabricPassphrase));
         }
         else {
-            extractMetrics(AzureRestOperation.doPost(url, serviceFabricBody));
+            extractMetrics(Objects.requireNonNull(AzureRestOperation.doPost(url, serviceFabricBody)));
         }
     }
 
     private void extractMetrics(JsonNode json){
-        if (logger.isDebugEnabled()) {logger.debug("Get Metrics Response JSON: " + Utilities.prettifyJson(json));}
-        List healtStateList = (List) configuration.getConfigYml().get(Globals.serviceFabricHealthStates);
+        List healtStateList = (List) serviceFabric.get("serviceFabricHealthStates");
+        Metric metric;
         Map healtStates = (Map) healtStateList.get(0);
-        String metricName = configuration.getMetricPrefix() + "|" + metric + "|";
-        MetricPrinter metricPrinter = new MetricPrinter(configuration.getMetricWriter());
-        metricPrinter.reportMetric(metricName +
-                "ClusterHealth",
-                BigDecimal.valueOf((Integer) healtStates.get(json.get("HealthState").asText())));
-
+        String metricPath = configuration.getMetricPrefix() + Constants.METRIC_SEPARATOR + metricName + Constants.METRIC_SEPARATOR;
+        metric = new Metric("ClusterHealth", healtStates.get(json.get("HealthState").asText()).toString(), metricPath);
+        finalMetricList.add(metric);
         JsonNode nodes = json.get("NodeHealthStateChunks").get("Items");
         for (JsonNode node:nodes){
-            metricPrinter.reportMetric(metricName +
+            metric = new Metric(node.get("NodeName").asText(), healtStates.get(node.get("HealthState").asText()).toString(), metricPath +
                     "NodeHealth" +
-                    "|" + node.get("NodeName").asText(),
-                    BigDecimal.valueOf((Integer) healtStates.get(node.get("HealthState").asText())));
+                    Constants.METRIC_SEPARATOR);
+            finalMetricList.add(metric);
         }
 
         JsonNode apps = json.get("ApplicationHealthStateChunks").get("Items");
         for (JsonNode app:apps){
             if (app.get("ApplicationTypeName").asText().isEmpty()){
-                metricPrinter.reportMetric(metricName +
+                metric = new Metric("System", healtStates.get(app.get("HealthState").asText()).toString(), metricPath +
                         "ApplicationHealth" +
-                        "|" + "System",
-                        BigDecimal.valueOf((Integer) healtStates.get(app.get("HealthState").asText())));
+                        Constants.METRIC_SEPARATOR);
+                finalMetricList.add(metric);
             }
             else {
-                metricPrinter.reportMetric(metricName +
+                metric = new Metric(app.get("ApplicationTypeName").asText(), healtStates.get(app.get("HealthState").asText()).toString(), metricPath +
                         "ApplicationHealth" +
-                        "|" + app.get("ApplicationTypeName").asText(),
-                        BigDecimal.valueOf((Integer) healtStates.get(app.get("HealthState").asText())));
+                        Constants.METRIC_SEPARATOR);
+                finalMetricList.add(metric);
             }
+        }
+        if (finalMetricList.isEmpty()){
+            if (logger.isDebugEnabled()) {
+                logger.debug("Metric List is empty");
+            }
+        }
+        else {
+            metricWriteHelper.transformAndPrintMetrics(finalMetricList);
         }
     }
 }
