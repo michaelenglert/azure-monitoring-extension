@@ -8,13 +8,16 @@
 
 package com.appdynamics.monitors.azure;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+
 import com.appdynamics.extensions.ABaseMonitor;
 import com.appdynamics.extensions.TasksExecutionServiceProvider;
 import com.appdynamics.extensions.util.AssertUtils;
 import com.appdynamics.monitors.azure.utils.Constants;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CountDownLatch;
+import com.singularity.ee.agent.systemagent.api.exception.TaskExecutionException;
 
 @SuppressWarnings({"WeakerAccess", "unchecked"})
 public class AzureMonitor extends ABaseMonitor {
