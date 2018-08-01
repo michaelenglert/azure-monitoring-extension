@@ -47,4 +47,13 @@ public class AzureMonitor extends ABaseMonitor {
         AssertUtils.assertNotNull(serviceFabrics, "The 'serviceFabrics' section in config.yml is not initialised");
         return subscriptions.size() + serviceFabrics.size();
     }
+
+    public static void main(String[] args) throws TaskExecutionException {
+
+        AzureMonitor monitor = new AzureMonitor();
+
+        Map<String, String> taskArgs = new HashMap<String, String>();
+        taskArgs.put("config-file","src/test/resources/conf/integration-test-config.yml");
+        monitor.execute(taskArgs, null);
+    }
 }
