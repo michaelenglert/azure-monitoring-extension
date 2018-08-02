@@ -45,10 +45,11 @@ public class AzureMonitor extends ABaseMonitor {
     @Override
     protected int getTaskCount() {
         List<Map<String,?>> subscriptions = (List<Map<String,?>>)getContextConfiguration().getConfigYml().get("subscriptions");
-        List<Map<String,?>> serviceFabrics = (List<Map<String,?>>)getContextConfiguration().getConfigYml().get("serviceFabrics");
+        // List<Map<String,?>> serviceFabrics = (List<Map<String,?>>)getContextConfiguration().getConfigYml().get("serviceFabrics");
         AssertUtils.assertNotNull(subscriptions, "The 'subscriptions' section in config.yml is not initialised");
-        AssertUtils.assertNotNull(serviceFabrics, "The 'serviceFabrics' section in config.yml is not initialised");
-        return subscriptions.size() + serviceFabrics.size();
+        // AssertUtils.assertNotNull(serviceFabrics, "The 'serviceFabrics' section in config.yml is not initialised");
+//        return subscriptions.size() + serviceFabrics.size();
+        return subscriptions.size();
     }
 
     public static void main(String[] args) throws TaskExecutionException {
