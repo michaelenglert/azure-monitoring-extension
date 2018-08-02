@@ -13,5 +13,6 @@ import com.microsoft.azure.management.Azure;
 public class Constants {
     public static final String DEFAULT_METRIC_PREFIX = "Custom Metrics|AzureMonitor|";
     public static final String METRIC_SEPARATOR  = "|";
+    public static final String TEST_CONFIG_FILE = "src/test/resources/conf/test-config.yml";
     public static Azure.Authenticated azureMonitorAuth = null;
 }

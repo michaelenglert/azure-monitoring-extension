@@ -56,7 +56,7 @@ public class AzureMonitor extends ABaseMonitor {
         AzureMonitor monitor = new AzureMonitor();
 
         Map<String, String> taskArgs = new HashMap<String, String>();
-        taskArgs.put("config-file","src/test/resources/conf/integration-test-config.yml");
+        taskArgs.put("config-file",Constants.TEST_CONFIG_FILE);
         monitor.execute(taskArgs, null);
     }
 }
