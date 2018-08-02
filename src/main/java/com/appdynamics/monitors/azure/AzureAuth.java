@@ -64,7 +64,11 @@ class AzureAuth {
                 tenantId,
                 clientKey,
                 AzureEnvironment.AZURE);
-        Constants.azureMonitorAuth = Azure.authenticate(applicationTokenCredentials);
+        if (logger.isDebugEnabled()) {
+			Constants.azureMonitorAuth = Azure.configure().withLogLevel(com.microsoft.rest.LogLevel.BASIC).authenticate(applicationTokenCredentials);
+        } else {
+			Constants.azureMonitorAuth = Azure.authenticate(applicationTokenCredentials);
+        }
     }
 
     private static AuthenticationResult getAuthenticationResult(String Id, String Key, String tenantId){
