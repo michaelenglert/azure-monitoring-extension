@@ -13,6 +13,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 
+import org.slf4j.LoggerFactory;
+
 import com.appdynamics.extensions.ABaseMonitor;
 import com.appdynamics.extensions.TasksExecutionServiceProvider;
 import com.appdynamics.extensions.util.AssertUtils;
@@ -21,6 +23,9 @@ import com.singularity.ee.agent.systemagent.api.exception.TaskExecutionException
 
 @SuppressWarnings({"WeakerAccess", "unchecked"})
 public class AzureMonitor extends ABaseMonitor {
+    private static final org.slf4j.Logger logger = LoggerFactory.getLogger(AzureMonitorTask.class);
+
+    private static long startTime = System.currentTimeMillis();
 
     @Override
     protected String getDefaultMetricPrefix() {
@@ -30,6 +35,13 @@ public class AzureMonitor extends ABaseMonitor {
     @Override
     public String getMonitorName() {
         return "Azure Monitoring Extension";
+    }
+
+    @Override
+    public void onComplete() {
+        long finishTime = System.currentTimeMillis();
+        long totalTime = finishTime - startTime;
+        logger.debug("Total time: " + (totalTime / 1000.0f) + " ms");
     }
 
     @Override
