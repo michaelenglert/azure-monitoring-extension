@@ -138,54 +138,7 @@ public class AzureMetrics implements AMonitorTaskRunnable {
 				} else if (resourceMetric.name().value().matches(currentMetricFilter)) {
 					azureMetricsCallCount.incrementAndGet();
 				    MetricCollection metricCollection = resourceMetric.defineQuery().startingFrom(recordDateTime.minusMinutes(2)).endsBefore(recordDateTime).execute();
-				    String metricAggregation = resourceMetric.primaryAggregationType().toString();
-				    String metricName = resourceMetric.name().value();
-				    String metricValue = null;
-				    String metricPath = metricPrefix +
-				            Constants.METRIC_SEPARATOR +
-				            subscriptionName +
-				            Constants.METRIC_SEPARATOR +
-				            resource.resourceGroupName() +
-				            Constants.METRIC_SEPARATOR +
-				            resource.resourceType() +
-				            Constants.METRIC_SEPARATOR +
-				            resource.name() +
-				            Constants.METRIC_SEPARATOR;
-				    switch (metricAggregation) {
-				        case "Count":
-				            metricValue = String.valueOf(metricCollection.metrics().get(0).timeseries().get(0).data().get(0).count());
-				            break;
-				        case "Average":
-				            metricValue = String.valueOf(metricCollection.metrics().get(0).timeseries().get(0).data().get(0).average());
-				            break;
-				        case "Total":
-				            metricValue = String.valueOf(metricCollection.metrics().get(0).timeseries().get(0).data().get(0).total());
-				            break;
-				        case "Maximum":
-				            metricValue = String.valueOf(metricCollection.metrics().get(0).timeseries().get(0).data().get(0).maximum());
-				            break;
-				        default:
-				            logger.info("Not Reporting Metric {} for Resource {} as the aggregation type is not supported",
-				                    metricName,
-				                    resource.name());
-				            break;
-				    }
-				    assert metricValue != null;
-				    if (metricValue.isEmpty() || metricValue.equals("0.0") || metricValue.equals("null")) {
-				        logger.debug("Ignoring Metric {} for Resource {} as it is null or empty",
-				                metricName,
-				                resource.name(),
-				                metricValue);
-				    } else {
-				        Metric metric = new Metric(metricName, metricValue, metricPath + metricName);
-				        if (logger.isDebugEnabled()) {
-				            logger.debug("Reporting Metric {} for Resource {} with value {}",
-				                    metricName,
-				                    resource.name(),
-				                    metricValue);
-				        }
-				        finalMetricList.add(metric);
-				    }
+				    addMetrics(resourceMetric, metricCollection);
 				} else {
 				    if (logger.isDebugEnabled()) {
 				        logger.debug("Not Reporting Metric {} for Resource {} as it is filtered by {}",
@@ -197,4 +150,55 @@ public class AzureMetrics implements AMonitorTaskRunnable {
 			}
         }
     }
+
+	private void addMetrics(MetricDefinition resourceMetric, MetricCollection metricCollection) {
+		String metricAggregation = resourceMetric.primaryAggregationType().toString();
+		String metricName = resourceMetric.name().value();
+		String metricValue = null;
+		String metricPath = metricPrefix +
+		        Constants.METRIC_SEPARATOR +
+		        subscriptionName +
+		        Constants.METRIC_SEPARATOR +
+		        resource.resourceGroupName() +
+		        Constants.METRIC_SEPARATOR +
+		        resource.resourceType() +
+		        Constants.METRIC_SEPARATOR +
+		        resource.name() +
+		        Constants.METRIC_SEPARATOR;
+		switch (metricAggregation) {
+		    case "Count":
+		        metricValue = String.valueOf(metricCollection.metrics().get(0).timeseries().get(0).data().get(0).count());
+		        break;
+		    case "Average":
+		        metricValue = String.valueOf(metricCollection.metrics().get(0).timeseries().get(0).data().get(0).average());
+		        break;
+		    case "Total":
+		        metricValue = String.valueOf(metricCollection.metrics().get(0).timeseries().get(0).data().get(0).total());
+		        break;
+		    case "Maximum":
+		        metricValue = String.valueOf(metricCollection.metrics().get(0).timeseries().get(0).data().get(0).maximum());
+		        break;
+		    default:
+		        logger.info("Not Reporting Metric {} for Resource {} as the aggregation type is not supported",
+		                metricName,
+		                resource.name());
+		        break;
+		}
+		assert metricValue != null;
+		if (metricValue.isEmpty() || metricValue.equals("0.0") || metricValue.equals("null")) {
+		    logger.debug("Ignoring Metric {} for Resource {} as it is null or empty",
+		            metricName,
+		            resource.name(),
+		            metricValue);
+		} else {
+		    Metric metric = new Metric(metricName, metricValue, metricPath + metricName);
+		    if (logger.isDebugEnabled()) {
+		        logger.debug("Reporting Metric {} for Resource {} with value {}",
+		                metricName,
+		                resource.name(),
+		                metricValue);
+		    }
+		    finalMetricList.add(metric);
+		}
+	}
 }
