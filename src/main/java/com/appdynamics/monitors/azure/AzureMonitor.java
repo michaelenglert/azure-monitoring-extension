@@ -8,13 +8,16 @@
 
 package com.appdynamics.monitors.azure;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+
 import com.appdynamics.extensions.ABaseMonitor;
 import com.appdynamics.extensions.TasksExecutionServiceProvider;
 import com.appdynamics.extensions.util.AssertUtils;
 import com.appdynamics.monitors.azure.utils.Constants;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CountDownLatch;
+import com.singularity.ee.agent.systemagent.api.exception.TaskExecutionException;
 
 @SuppressWarnings({"WeakerAccess", "unchecked"})
 public class AzureMonitor extends ABaseMonitor {
@@ -42,9 +45,19 @@ public class AzureMonitor extends ABaseMonitor {
     @Override
     protected int getTaskCount() {
         List<Map<String,?>> subscriptions = (List<Map<String,?>>)getContextConfiguration().getConfigYml().get("subscriptions");
-        List<Map<String,?>> serviceFabrics = (List<Map<String,?>>)getContextConfiguration().getConfigYml().get("serviceFabrics");
+        // List<Map<String,?>> serviceFabrics = (List<Map<String,?>>)getContextConfiguration().getConfigYml().get("serviceFabrics");
         AssertUtils.assertNotNull(subscriptions, "The 'subscriptions' section in config.yml is not initialised");
-        AssertUtils.assertNotNull(serviceFabrics, "The 'serviceFabrics' section in config.yml is not initialised");
-        return subscriptions.size() + serviceFabrics.size();
+        // AssertUtils.assertNotNull(serviceFabrics, "The 'serviceFabrics' section in config.yml is not initialised");
+//        return subscriptions.size() + serviceFabrics.size();
+        return subscriptions.size();
+    }
+
+    public static void main(String[] args) throws TaskExecutionException {
+
+        AzureMonitor monitor = new AzureMonitor();
+
+        Map<String, String> taskArgs = new HashMap<String, String>();
+        taskArgs.put("config-file",Constants.TEST_CONFIG_FILE);
+        monitor.execute(taskArgs, null);
     }
 }
