@@ -21,10 +21,14 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @SuppressWarnings("unchecked")
 class AzureMonitorTask implements AMonitorTaskRunnable{
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(AzureMonitorTask.class);
+
+    private final AtomicInteger azureResourcesCallCount = new AtomicInteger(0);
+
     private final MonitorContextConfiguration configuration;
     private final MetricWriteHelper metricWriteHelper;
     private final Map<String, ?> subscription;
@@ -43,6 +47,7 @@ class AzureMonitorTask implements AMonitorTaskRunnable{
     @Override
     public void onTaskComplete() {
         logger.info("Task Complete");
+        logger.debug("azureResourcesCallCount: " + this.azureResourcesCallCount);
     }
 
     @Override
@@ -61,6 +66,7 @@ class AzureMonitorTask implements AMonitorTaskRunnable{
         AzureAuth.getAzureAuth(subscription);
         Azure azure = Constants.azureMonitorAuth.withSubscription(subscription.get("subscriptionId").toString());
         String subscriptionName;
+        this.azureResourcesCallCount.incrementAndGet();
         PagedList<GenericResource> resources = azure.genericResources().list();
         CountDownLatch countDownLatchAzure = new CountDownLatch(resources.size());
 
