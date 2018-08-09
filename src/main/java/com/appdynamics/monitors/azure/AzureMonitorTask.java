@@ -92,7 +92,7 @@ class AzureMonitorTask implements AMonitorTaskRunnable{
                                 currentResourceFilter,
                                 currentResourceTypeFilter,
                                 resource,
-                                subscriptionName,
+                                subscription,
                                 countDownLatchAzure,
                                 metricWriteHelper,
                                 azure,

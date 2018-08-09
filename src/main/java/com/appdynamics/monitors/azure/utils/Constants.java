@@ -8,11 +8,17 @@
 
 package com.appdynamics.monitors.azure.utils;
 
+import com.microsoft.aad.adal4j.AuthenticationResult;
+import com.microsoft.azure.credentials.ApplicationTokenCredentials;
 import com.microsoft.azure.management.Azure;
 
 public class Constants {
     public static final String DEFAULT_METRIC_PREFIX = "Custom Metrics|AzureMonitor|";
     public static final String METRIC_SEPARATOR  = "|";
     public static final String TEST_CONFIG_FILE = "src/test/resources/conf/test-config.yml";
+	public static final String AZURE_MANAGEMENT_URL = "https://management.azure.com";
+	public static final String AZURE_VAULT_URL = "https://vault.azure.net";
+	public static final int AZURE_METRICS_CHUNK_SIZE = 20;
     public static Azure.Authenticated azureMonitorAuth = null;
+	public static AuthenticationResult azureAuthResult;
 }
