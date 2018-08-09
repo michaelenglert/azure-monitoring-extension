@@ -53,7 +53,7 @@ class AzureAuth {
         if (!Strings.isNullOrEmpty(keyvaultClientId) && !Strings.isNullOrEmpty(keyvaultClientKey) && !Strings.isNullOrEmpty(keyvaultClientSecretUrl)){
             URL keyvaultUrl = Utilities.getUrl(keyvaultClientSecretUrl + "?" + "api-version" +
                                 "=" + subscription.get("keyvault-api-version"));
-            AuthenticationResult azureKeyVaultAuth = getAuthenticationResult(keyvaultClientId, keyvaultClientKey, tenantId);
+            AuthenticationResult azureKeyVaultAuth = getAuthenticationResult(keyvaultClientId, keyvaultClientKey, tenantId, Constants.AZURE_VAULT_URL);
             JsonNode keyVaultResponse = AzureRestOperation.doGet(azureKeyVaultAuth, keyvaultUrl);
             assert keyVaultResponse != null;
             clientKey = keyVaultResponse.get("value").textValue();
@@ -69,9 +69,12 @@ class AzureAuth {
         } else {
 			Constants.azureMonitorAuth = Azure.authenticate(applicationTokenCredentials);
         }
+        AuthenticationResult azureAuthResult = getAuthenticationResult(clientId, clientKey, tenantId, Constants.AZURE_MANAGEMENT_URL);
+        Constants.azureAuthResult = azureAuthResult;
+        logger.debug("Bearer {}", azureAuthResult.getAccessToken());
     }
 
-    private static AuthenticationResult getAuthenticationResult(String Id, String Key, String tenantId){
+    private static AuthenticationResult getAuthenticationResult(String Id, String Key, String tenantId, String resourceUrl){
         ExecutorService service = Executors.newSingleThreadExecutor();
         AuthenticationResult result = null;
         String authority = "https://login.microsoftonline.com/" + tenantId;
@@ -80,7 +83,7 @@ class AzureAuth {
             AuthenticationContext context;
             context = new AuthenticationContext(authority, false, service);
             ClientCredential cred = new ClientCredential(Id, Key);
-            Future<AuthenticationResult> future = context.acquireToken("https://vault.azure.net", cred, null);
+            Future<AuthenticationResult> future = context.acquireToken(resourceUrl, cred, null);
             result = future.get();
         } catch (MalformedURLException e) {
             logger.error("Not a valid Azure authentication Authority {}", authority, e);

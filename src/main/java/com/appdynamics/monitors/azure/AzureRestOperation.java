@@ -19,11 +19,12 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.security.*;
 
-class AzureRestOperation {
+public class AzureRestOperation {
     private static final Logger logger = LoggerFactory.getLogger(AzureRestOperation.class);
 
-    static JsonNode doGet(AuthenticationResult azureAuth, URL url) {
+    public static JsonNode doGet(AuthenticationResult azureAuth, URL url) {
         try {
+            logger.debug("--> GET " + url);
             ObjectMapper objectMapper = new ObjectMapper();
             String response = "";
             HttpURLConnection conn;
