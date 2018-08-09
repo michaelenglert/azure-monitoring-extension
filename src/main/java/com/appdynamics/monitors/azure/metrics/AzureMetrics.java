@@ -112,9 +112,12 @@ public class AzureMetrics implements AMonitorTaskRunnable {
         else {
             subscriptionName = subscription.get("subscriptionId").toString();
         }
+        logger.debug("Resource name ({}): {} {}", resource.name().matches(currentResourceFilter), resource.name(), currentResourceFilter);
+        logger.debug("Resource type ({}): {} {}", resource.type().matches(currentResourceTypeFilter), resource.type(), currentResourceTypeFilter);
+        logger.debug("Resource group ({}): {} {}", resource.resourceGroupName().matches("(?i:" + currentResourceGroupFilter + ")"), resource.resourceGroupName(), currentResourceGroupFilter);
         if (resource.name().matches(currentResourceFilter) &&
-                resource.resourceType().matches(currentResourceTypeFilter) &&
-                resource.resourceGroupName().matches(currentResourceGroupFilter)) {
+                resource.type().matches(currentResourceTypeFilter) &&
+                resource.resourceGroupName().matches("(?i:" + currentResourceGroupFilter + ")")) {
             if (logger.isDebugEnabled()) {
                 logger.debug("Working on Resource {} of Type {} in Group {} because of Resource Filter {} of Type Filter {} in Group Filter {}",
                         resource.name(),
