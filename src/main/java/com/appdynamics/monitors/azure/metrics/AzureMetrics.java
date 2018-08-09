@@ -112,9 +112,11 @@ public class AzureMetrics implements AMonitorTaskRunnable {
         else {
             subscriptionName = subscription.get("subscriptionId").toString();
         }
-        logger.debug("Resource name ({}): {} {}", resource.name().matches(currentResourceFilter), resource.name(), currentResourceFilter);
-        logger.debug("Resource type ({}): {} {}", resource.type().matches(currentResourceTypeFilter), resource.type(), currentResourceTypeFilter);
-        logger.debug("Resource group ({}): {} {}", resource.resourceGroupName().matches("(?i:" + currentResourceGroupFilter + ")"), resource.resourceGroupName(), currentResourceGroupFilter);
+        if (logger.isDebugEnabled()) {
+            logger.debug("Resource name ({}): {} {}", resource.name().matches(currentResourceFilter), resource.name(), currentResourceFilter);
+            logger.debug("Resource type ({}): {} {}", resource.type().matches(currentResourceTypeFilter), resource.type(), currentResourceTypeFilter);
+            logger.debug("Resource group ({}): {} {}", resource.resourceGroupName().matches("(?i:" + currentResourceGroupFilter + ")"), resource.resourceGroupName(), currentResourceGroupFilter);
+        }
         if (resource.name().matches(currentResourceFilter) &&
                 resource.type().matches(currentResourceTypeFilter) &&
                 resource.resourceGroupName().matches("(?i:" + currentResourceGroupFilter + ")")) {
@@ -157,8 +159,10 @@ public class AzureMetrics implements AMonitorTaskRunnable {
         } else {
             metricWriteHelper.transformAndPrintMetrics(finalMetricList);
         }
-        logger.debug("azureMetricDefinitionsCallCount {}: {}", resource.id(), azureMetricDefinitionsCallCount);
-        logger.debug("azureMetricsCallCount: " + azureMetricsCallCount);
+        if (logger.isDebugEnabled()) {
+            logger.debug("azureMetricDefinitionsCallCount {}: {}", resource.id(), azureMetricDefinitionsCallCount);
+            logger.debug("azureMetricsCallCount: " + azureMetricsCallCount);
+        }
     }
 
     private void getResourceMetrics(List<MetricDefinition> resourceMetrics, List<Map<String, String>> metricFilters) throws MalformedURLException, UnsupportedEncodingException {
@@ -204,7 +208,9 @@ public class AzureMetrics implements AMonitorTaskRunnable {
                     azureMetricsCallCount.incrementAndGet();
                     JsonNode apiResponse = AzureRestOperation.doGet(Constants.azureAuthResult, apiEndpointFull);
                     if (apiResponse != null) {
-                        logger.debug("API response: " + apiResponse.toString());
+                        if (logger.isDebugEnabled()) {
+                            logger.debug("API response: " + apiResponse.toString());
+                        }
                         addMetrics(filteredMetricsChunk, apiResponse);
                     }
                 }
@@ -220,7 +226,9 @@ public class AzureMetrics implements AMonitorTaskRunnable {
         while (responseMetricsIterator.hasNext() && filteredMetricsIterator.hasNext()) {
             MetricDefinition resourceMetric = filteredMetricsIterator.next();
             JsonNode responseMetric = responseMetricsIterator.next();
-            logger.debug("Response metric: {}", responseMetric.toString());
+            if (logger.isDebugEnabled()) {
+                logger.debug("Response metric: {}", responseMetric.toString());
+            }
 
             String metricAggregation = resourceMetric.primaryAggregationType().toString();
             String metricName = resourceMetric.name().value();
@@ -235,7 +243,9 @@ public class AzureMetrics implements AMonitorTaskRunnable {
                     Constants.METRIC_SEPARATOR +
                     resource.name() +
                     Constants.METRIC_SEPARATOR;
-            logger.debug("Metric name / aggregation / path: {} / {} / {}", metricName, metricAggregation, metricPath);
+            if (logger.isDebugEnabled()) {
+                logger.debug("Metric name / aggregation / path: {} / {} / {}", metricName, metricAggregation, metricPath);
+            }
 
             JsonNode data = responseMetric.findPath("timeseries").findPath("data");
             switch (metricAggregation) {
@@ -252,17 +262,21 @@ public class AzureMetrics implements AMonitorTaskRunnable {
                     metricValue = (data.path(0).path("maximum").isMissingNode()) ? null : data.get(0).get("maximum").toString();
                     break;
                 default:
-                    logger.info("Not Reporting Metric {} for Resource {} as the aggregation type is not supported",
-                            metricName,
-                            resource.name());
+                    if (logger.isDebugEnabled()) {
+                        logger.info("Not Reporting Metric {} for Resource {} as the aggregation type is not supported",
+                                metricName,
+                                resource.name());
+                    }
                     break;
             }
 
             if (metricValue == null) {
-                logger.debug("Ignoring Metric {} for Resource {} as it is null or empty",
-                        metricName,
-                        resource.name(),
-                        metricValue);
+                if (logger.isDebugEnabled()) {
+                    logger.debug("Ignoring Metric {} for Resource {} as it is null or empty",
+                            metricName,
+                            resource.name(),
+                            metricValue);
+                }
             } else {
                 Metric metric = new Metric(metricName, metricValue, metricPath + metricName);
                 if (logger.isDebugEnabled()) {
