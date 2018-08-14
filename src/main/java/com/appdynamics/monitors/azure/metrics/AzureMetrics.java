@@ -46,23 +46,19 @@ public class AzureMetrics implements AMonitorTaskRunnable {
 
     public final AtomicInteger azureMetricsCallCount = new AtomicInteger(0);
     public final AtomicInteger azureMetricDefinitionsCallCount = new AtomicInteger(0);
-
     private final Map<String, ?> resourceFilter;
     private final String currentResourceGroupFilter;
     private final String currentResourceFilter;
     private final String currentResourceTypeFilter;
     private final GenericResource resource;
     private final Map<String, ?> subscription;
+    private final String subscriptionName;
     private final CountDownLatch countDownLatch;
     private final MetricWriteHelper metricWriteHelper;
     private final Azure azure;
     private final String metricPrefix;
-
-    private List<Metric> finalMetricList = Lists.newArrayList();
-
-    private DateTime recordDateTime = DateTime.now(DateTimeZone.UTC);
-
-    private String subscriptionName;
+    private final List<Metric> finalMetricList = Lists.newArrayList();
+    private final DateTime recordDateTime = DateTime.now(DateTimeZone.UTC);
 
     public AzureMetrics(Map<String, ?> resourceFilter,
                         String currentResourceGroupFilter,
@@ -84,6 +80,12 @@ public class AzureMetrics implements AMonitorTaskRunnable {
         this.metricWriteHelper = metricWriteHelper;
         this.azure = azure;
         this.metricPrefix = metricPrefix;
+        if (subscription.containsKey("subscriptionName")){
+            subscriptionName = subscription.get("subscriptionName").toString();
+        }
+        else {
+            subscriptionName = subscription.get("subscriptionId").toString();
+        }
     }
 
     @Override
@@ -93,7 +95,6 @@ public class AzureMetrics implements AMonitorTaskRunnable {
 
     @Override
     public void run() {
-
         try {
             runTask();
         }
@@ -106,12 +107,6 @@ public class AzureMetrics implements AMonitorTaskRunnable {
     }
 
     private void runTask(){
-        if (subscription.containsKey("subscriptionName")){
-            subscriptionName = subscription.get("subscriptionName").toString();
-        }
-        else {
-            subscriptionName = subscription.get("subscriptionId").toString();
-        }
         if (logger.isDebugEnabled()) {
             logger.debug("Resource name ({}): {} {}", resource.name().matches(currentResourceFilter), resource.name(), currentResourceFilter);
             logger.debug("Resource type ({}): {} {}", resource.type().matches(currentResourceTypeFilter), resource.type(), currentResourceTypeFilter);
@@ -131,9 +126,8 @@ public class AzureMetrics implements AMonitorTaskRunnable {
             }
             azureMetricDefinitionsCallCount.incrementAndGet();
             List<MetricDefinition> resourceMetrics = azure.metricDefinitions().listByResource(resource.id());
-            List<Map<String, String>> metricFilters = (List<Map<String, String>>) resourceFilter.get("metrics");
             try {
-                getResourceMetrics(resourceMetrics, metricFilters);
+                generateMetrics(resourceMetrics);
             } catch (MalformedURLException e) {
                 // TODO Auto-generated catch block
                 e.printStackTrace();
@@ -165,21 +159,40 @@ public class AzureMetrics implements AMonitorTaskRunnable {
         }
     }
 
-    private void getResourceMetrics(List<MetricDefinition> resourceMetrics, List<Map<String, String>> metricFilters) throws MalformedURLException, UnsupportedEncodingException {
+    private void generateMetrics(List<MetricDefinition> resourceMetrics) throws MalformedURLException, UnsupportedEncodingException {
+        List<Map<String, ?>> metricFilters = (List<Map<String, ?>>) resourceFilter.get("metrics");
+
         List<MetricDefinition> filteredMetrics = Lists.newArrayList();
         List<String> filteredMetricsNames = Lists.newArrayList();
 
-        for (Map<String, String> metricFilter : metricFilters) {
+        for (Map<String, ?> metricFilter : metricFilters) {
             for (MetricDefinition resourceMetric : resourceMetrics) {
-                String currentMetricFilter = metricFilter.get("metric");
-                if (resourceMetric.isDimensionRequired()) {
-                    if (logger.isDebugEnabled()) {
-                        logger.debug("Resource Metric {} needs Dimensions. This is currently not supported",
-                                resourceMetric.id());
+                String currentMetricFilter = metricFilter.get("metric").toString();
+                if (logger.isDebugEnabled()) {
+                    logger.debug("resourceMetric name ({})", resourceMetric.name().value());
+                    logger.debug("currentMetricFilter ({})", currentMetricFilter);
+                    logger.debug("match ({})", resourceMetric.name().value().matches(currentMetricFilter), resourceMetric.name().value(), currentMetricFilter);
+                }
+
+                String apiEndpointBase = resourceMetric.id().substring(0,StringUtils.ordinalIndexOf(resourceMetric.id(), "/", 11));
+                Object filterObject = metricFilter.get("filter");
+                String filter = filterObject == null ? "" : filterObject.toString();
+
+                if (resourceMetric.name().value().matches(currentMetricFilter)) {
+                    if (!filter.isEmpty()) {
+                        JsonNode apiResponse = getAzureMetrics(apiEndpointBase, resourceMetric.name().value(), filter);
+                        if (apiResponse != null) {
+                            if (logger.isDebugEnabled()) {
+                                logger.debug("API response: " + apiResponse.toString());
+                            }
+                            addMetric(resourceMetric, apiResponse, metricFilter);
+
+                            return;
+                        }
+                    } else {
+                        filteredMetrics.add(resourceMetric);
+                        filteredMetricsNames.add(URLEncoder.encode(resourceMetric.name().value(), "UTF-8"));
                     }
-                } else if (resourceMetric.name().value().matches(currentMetricFilter)) {
-                    filteredMetrics.add(resourceMetric);
-                    filteredMetricsNames.add(URLEncoder.encode(resourceMetric.name().value(), "UTF-8"));
                 } else {
                     if (logger.isDebugEnabled()) {
                         logger.debug("Not Reporting Metric {} for Resource {} as it is filtered by {}",
@@ -189,33 +202,53 @@ public class AzureMetrics implements AMonitorTaskRunnable {
                     }
                 }
             }
-            if (!filteredMetrics.isEmpty()) {
-                List<List<MetricDefinition>> filteredMetricsChunks = ListUtils.partition(filteredMetrics, Constants.AZURE_METRICS_CHUNK_SIZE);
-                List<List<String>> filteredMetricsNamesChunks = ListUtils.partition(filteredMetricsNames, Constants.AZURE_METRICS_CHUNK_SIZE);
-                Iterator<List<MetricDefinition>> filteredMetricsIterator = filteredMetricsChunks.iterator();
-                Iterator<List<String>> filteredMetricsNamesIterator = filteredMetricsNamesChunks.iterator();
+        }
+        logger.debug("filteredMetrics size ({})", filteredMetrics.size());
+        consumeAndImportAzureMetrics(filteredMetrics, filteredMetricsNames);
+    }
 
-                String apiEndpointBase = filteredMetrics.get(0).id().substring(0,StringUtils.ordinalIndexOf(filteredMetrics.get(0).id(), "/", 11));
+    private void consumeAndImportAzureMetrics(List<MetricDefinition> filteredMetrics, List<String> filteredMetricsNames) throws MalformedURLException, UnsupportedEncodingException {
+        if (!filteredMetrics.isEmpty()) {
+            List<List<MetricDefinition>> filteredMetricsChunks = ListUtils.partition(filteredMetrics, Constants.AZURE_METRICS_CHUNK_SIZE);
+            List<List<String>> filteredMetricsNamesChunks = ListUtils.partition(filteredMetricsNames, Constants.AZURE_METRICS_CHUNK_SIZE);
+            Iterator<List<MetricDefinition>> filteredMetricsIterator = filteredMetricsChunks.iterator();
+            Iterator<List<String>> filteredMetricsNamesIterator = filteredMetricsNamesChunks.iterator();
 
-                while (filteredMetricsIterator.hasNext() && filteredMetricsNamesIterator.hasNext()) {
-                    List<MetricDefinition> filteredMetricsChunk = filteredMetricsIterator.next();
-                    List<String> filteredMetricsNamesChunk = filteredMetricsNamesIterator.next();
-                    URL apiEndpointFull = new URL(Constants.AZURE_MANAGEMENT_URL 
-                            + apiEndpointBase
-                            + "/metrics?timespan=" + recordDateTime.minusMinutes(2).toDateTimeISO() + "/" + recordDateTime.toDateTimeISO()
-                            + "&metricnames=" + StringUtils.join(filteredMetricsNamesChunk, ',')
-                            + "&api-version=" + subscription.get("api-version"));
-                    azureMetricsCallCount.incrementAndGet();
-                    JsonNode apiResponse = AzureRestOperation.doGet(Constants.azureAuthResult, apiEndpointFull);
-                    if (apiResponse != null) {
-                        if (logger.isDebugEnabled()) {
-                            logger.debug("API response: " + apiResponse.toString());
-                        }
-                        addMetrics(filteredMetricsChunk, apiResponse);
+            String apiEndpointBase = filteredMetrics.get(0).id().substring(0,StringUtils.ordinalIndexOf(filteredMetrics.get(0).id(), "/", 11));
+
+            while (filteredMetricsIterator.hasNext() && filteredMetricsNamesIterator.hasNext()) {
+                List<MetricDefinition> filteredMetricsChunk = filteredMetricsIterator.next();
+                List<String> filteredMetricsNamesChunk = filteredMetricsNamesIterator.next();
+                JsonNode apiResponse = getAzureMetrics(apiEndpointBase, StringUtils.join(filteredMetricsNamesChunk, ','));
+                if (apiResponse != null) {
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("API response: " + apiResponse.toString());
                     }
+                    addMetrics(filteredMetricsChunk, apiResponse);
                 }
             }
         }
+    }
+
+    private JsonNode getAzureMetrics(String apiEndpointBase, String metricNames) throws MalformedURLException, UnsupportedEncodingException {
+        return getAzureMetrics(apiEndpointBase, metricNames, null);
+    }
+
+    private JsonNode getAzureMetrics(String apiEndpointBase, String metricNames,
+        String filter) throws MalformedURLException, UnsupportedEncodingException {
+        String url = Constants.AZURE_MANAGEMENT_URL
+                + apiEndpointBase
+                + "/metrics?timespan=" + recordDateTime.minusMinutes(2).toDateTimeISO() + "/" + recordDateTime.toDateTimeISO()
+                + "&metricnames=" + metricNames
+                + "&api-version=" + subscription.get("api-version");
+        if (filter != null) {
+            url += "&$filter=" + URLEncoder.encode(filter, "UTF-8");
+        }
+        URL apiEndpointFull = new URL(url);
+        azureMetricsCallCount.incrementAndGet();
+        JsonNode apiResponse = AzureRestOperation.doGet(Constants.azureAuthResult, apiEndpointFull);
+
+        return apiResponse;
     }
 
     private void addMetrics(List<MetricDefinition> filteredMetricsChunk, JsonNode responseMetrics) {
@@ -229,64 +262,80 @@ public class AzureMetrics implements AMonitorTaskRunnable {
             if (logger.isDebugEnabled()) {
                 logger.debug("Response metric: {}", responseMetric.toString());
             }
+            addMetric(resourceMetric, responseMetric);
+        }
+    }
 
-            String metricAggregation = resourceMetric.primaryAggregationType().toString();
-            String metricName = resourceMetric.name().value();
-            String metricValue = null;
-            String metricPath = metricPrefix +
-                    Constants.METRIC_SEPARATOR +
-                    subscriptionName +
-                    Constants.METRIC_SEPARATOR +
-                    resource.resourceGroupName() +
-                    Constants.METRIC_SEPARATOR +
-                    resource.resourceType() +
-                    Constants.METRIC_SEPARATOR +
-                    resource.name() +
-                    Constants.METRIC_SEPARATOR;
+    private void addMetric(MetricDefinition resourceMetric, JsonNode responseMetric) {
+        addMetric(resourceMetric, responseMetric, null);
+    }
+
+    private void addMetric(MetricDefinition resourceMetric, JsonNode responseMetric, Map<String, ?> metricFilter) {
+        String metricAggregation = resourceMetric.primaryAggregationType().toString();
+        String metricName = resourceMetric.name().value();
+        String metricValue = null;
+        String metricPath = metricPrefix +
+                Constants.METRIC_SEPARATOR +
+                subscriptionName +
+                Constants.METRIC_SEPARATOR +
+                resource.resourceGroupName() +
+                Constants.METRIC_SEPARATOR +
+                resource.resourceType() +
+                Constants.METRIC_SEPARATOR +
+                resource.name() +
+                Constants.METRIC_SEPARATOR;
+        if (logger.isDebugEnabled()) {
+            logger.debug("Metric name / aggregation / path: {} / {} / {}", metricName, metricAggregation, metricPath);
+        }
+
+        JsonNode data = responseMetric.findPath("timeseries").findPath("data");
+        switch (metricAggregation) {
+            case "Count":
+                metricValue = (data.path(0).path("count").isMissingNode()) ? null : data.get(0).get("count").toString();
+                break;
+            case "Average":
+                metricValue = (data.path(0).path("average").isMissingNode()) ? null : data.get(0).get("average").toString();
+                break;
+            case "Total":
+                metricValue = (data.path(0).path("total").isMissingNode()) ? null : data.get(0).get("total").toString();
+                break;
+            case "Maximum":
+                metricValue = (data.path(0).path("maximum").isMissingNode()) ? null : data.get(0).get("maximum").toString();
+                break;
+            default:
+                if (logger.isDebugEnabled()) {
+                    logger.info("Not Reporting Metric {} for Resource {} as the aggregation type is not supported",
+                            metricName,
+                            resource.name());
+                }
+                break;
+        }
+
+        if (metricValue == null) {
             if (logger.isDebugEnabled()) {
-                logger.debug("Metric name / aggregation / path: {} / {} / {}", metricName, metricAggregation, metricPath);
+                logger.debug("Ignoring Metric {} for Resource {} as it is null or empty",
+                        metricName,
+                        resource.name(),
+                        metricValue);
             }
-
-            JsonNode data = responseMetric.findPath("timeseries").findPath("data");
-            switch (metricAggregation) {
-                case "Count":
-                    metricValue = (data.path(0).path("count").isMissingNode()) ? null : data.get(0).get("count").toString();
-                    break;
-                case "Average":
-                    metricValue = (data.path(0).path("average").isMissingNode()) ? null : data.get(0).get("average").toString();
-                    break;
-                case "Total":
-                    metricValue = (data.path(0).path("total").isMissingNode()) ? null : data.get(0).get("total").toString();
-                    break;
-                case "Maximum":
-                    metricValue = (data.path(0).path("maximum").isMissingNode()) ? null : data.get(0).get("maximum").toString();
-                    break;
-                default:
-                    if (logger.isDebugEnabled()) {
-                        logger.info("Not Reporting Metric {} for Resource {} as the aggregation type is not supported",
-                                metricName,
-                                resource.name());
-                    }
-                    break;
+        } else {
+            String subpath = "";
+            Object aliasObject = null;
+            Object subpathObject = null;
+            if (metricFilter != null) {
+                aliasObject = metricFilter.get("alias");
+                subpathObject = metricFilter.get("subpath");
             }
-
-            if (metricValue == null) {
-                if (logger.isDebugEnabled()) {
-                    logger.debug("Ignoring Metric {} for Resource {} as it is null or empty",
-                            metricName,
-                            resource.name(),
-                            metricValue);
-                }
-            } else {
-                Metric metric = new Metric(metricName, metricValue, metricPath + metricName);
-                if (logger.isDebugEnabled()) {
-                    logger.debug("Reporting Metric {} for Resource {} with value {}",
-                            metricName,
-                            resource.name(),
-                            metricValue);
-                }
-                finalMetricList.add(metric);
+            metricName = aliasObject == null ? metricName : aliasObject.toString();
+            subpath = subpathObject == null ? "" : subpathObject.toString() + "|";
+            Metric metric = new Metric(metricName, metricValue, metricPath + subpath + metricName);
+            if (logger.isDebugEnabled()) {
+                logger.debug("Reporting Metric {} for Resource {} with value {}",
+                        metricName,
+                        resource.name(),
+                        metricValue);
             }
+            finalMetricList.add(metric);
         }
     }
 }
