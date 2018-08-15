@@ -185,7 +185,12 @@ public class AzureMetrics implements AMonitorTaskRunnable {
                             if (logger.isDebugEnabled()) {
                                 logger.debug("API response: " + apiResponse.toString());
                             }
-                            addMetric(resourceMetric, apiResponse, metricFilter);
+                            try {
+                                addMetric(resourceMetric, apiResponse, metricFilter);
+                            } catch (Exception e) {
+                                // TODO Auto-generated catch block
+                                e.printStackTrace();
+                            }
 
                             return;
                         }
@@ -267,10 +272,15 @@ public class AzureMetrics implements AMonitorTaskRunnable {
     }
 
     private void addMetric(MetricDefinition resourceMetric, JsonNode responseMetric) {
-        addMetric(resourceMetric, responseMetric, null);
+        try {
+            addMetric(resourceMetric, responseMetric, null);
+        } catch (Exception e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
     }
 
-    private void addMetric(MetricDefinition resourceMetric, JsonNode responseMetric, Map<String, ?> metricFilter) {
+    private void addMetric(MetricDefinition resourceMetric, JsonNode responseMetric, Map<String, ?> metricFilter) throws Exception {
         String metricAggregation = resourceMetric.primaryAggregationType().toString();
         String metricName = resourceMetric.name().value();
         String metricValue = null;
@@ -288,7 +298,12 @@ public class AzureMetrics implements AMonitorTaskRunnable {
             logger.debug("Metric name / aggregation / path: {} / {} / {}", metricName, metricAggregation, metricPath);
         }
 
-        JsonNode data = responseMetric.findPath("timeseries").findPath("data");
+        JsonNode timeseries = responseMetric.findPath("timeseries");
+        logger.debug("timeseries.size():" + timeseries.size());
+        if (timeseries.size() > 1) {
+            throw new Exception("Multiple timeseries not supported");
+        }
+        JsonNode data = timeseries.findPath("data");
         switch (metricAggregation) {
             case "Count":
                 metricValue = (data.path(0).path("count").isMissingNode()) ? null : data.get(0).get("count").toString();
