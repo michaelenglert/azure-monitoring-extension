@@ -68,8 +68,6 @@ class AzureMonitorTask implements AMonitorTaskRunnable{
         String subscriptionName;
         this.azureResourcesCallCount.incrementAndGet();
         PagedList<GenericResource> resources = azure.genericResources().list();
-        CountDownLatch countDownLatchAzure = new CountDownLatch(resources.size());
-
         if (subscription.containsKey("subscriptionName")){
             subscriptionName = subscription.get("subscriptionName").toString();
         }
@@ -83,6 +81,7 @@ class AzureMonitorTask implements AMonitorTaskRunnable{
                 List<Map<String, ?>> resourceFilters = (List<Map<String, ?>>) resourceTypeFilter.get("resources");
                 for (Map<String, ?> resourceFilter : resourceFilters) {
                     String currentResourceGroupFilter = resourceGroupFilter.get("resourceGroup").toString();
+                    CountDownLatch countDownLatchAzure = new CountDownLatch(resources.size());
                     for (GenericResource resource : resources) {
                         String currentResourceFilter = resourceFilter.get("resource").toString();
                         String currentResourceTypeFilter = resourceTypeFilter.get("resourceType").toString();
@@ -97,16 +96,16 @@ class AzureMonitorTask implements AMonitorTaskRunnable{
                                 metricWriteHelper,
                                 azure,
                                 configuration.getMetricPrefix());
+
                         configuration.getContext().getExecutorService().execute("AzureMetrics", azureMetricsTask);
+                    }
+                    try{
+                        countDownLatchAzure.await();
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
                     }
                 }
             }
-        }
-
-        try{
-            countDownLatchAzure.await();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
         }
     }
 }
