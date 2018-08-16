@@ -1,3 +1,9 @@
+### Version 1.10.0.0 (Alpha)
+
+* Add basic dimensions support
+* Add CLI support
+* Get multiple metrics with a simple API call
+
 ### Version 1.9.9.0 (Alpha)
 
 * Changed to latest Extension Framework
