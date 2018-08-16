@@ -9,8 +9,8 @@
 package com.appdynamics.monitors.azure.utils;
 
 import com.microsoft.aad.adal4j.AuthenticationResult;
-import com.microsoft.azure.credentials.ApplicationTokenCredentials;
 import com.microsoft.azure.management.Azure;
+import com.singularity.ee.agent.systemagent.api.MetricWriter;
 
 public class Constants {
     public static final String DEFAULT_METRIC_PREFIX = "Custom Metrics|AzureMonitor|";

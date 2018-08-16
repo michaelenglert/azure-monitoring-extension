@@ -47,7 +47,7 @@ class AzureMonitorTask implements AMonitorTaskRunnable{
     @Override
     public void onTaskComplete() {
         logger.info("Task Complete");
-        logger.debug("azureResourcesCallCount: " + this.azureResourcesCallCount);
+//        logger.debug("azureResourcesCallCount: " + this.azureResourcesCallCount);
     }
 
     @Override
@@ -65,24 +65,15 @@ class AzureMonitorTask implements AMonitorTaskRunnable{
     private void runTask(){
         AzureAuth.getAzureAuth(subscription);
         Azure azure = Constants.azureMonitorAuth.withSubscription(subscription.get("subscriptionId").toString());
-        String subscriptionName;
         this.azureResourcesCallCount.incrementAndGet();
         PagedList<GenericResource> resources = azure.genericResources().list();
-        CountDownLatch countDownLatchAzure = new CountDownLatch(resources.size());
-
-        if (subscription.containsKey("subscriptionName")){
-            subscriptionName = subscription.get("subscriptionName").toString();
-        }
-        else {
-            subscriptionName = subscription.get("subscriptionId").toString();
-        }
-
         for (Map<String, ?> resourceGroupFilter : resourceGroupFilters) {
             List<Map<String, ?>> resourceTypeFilters = (List<Map<String, ?>>) resourceGroupFilter.get("resourceTypes");
             for (Map<String, ?> resourceTypeFilter : resourceTypeFilters) {
                 List<Map<String, ?>> resourceFilters = (List<Map<String, ?>>) resourceTypeFilter.get("resources");
                 for (Map<String, ?> resourceFilter : resourceFilters) {
                     String currentResourceGroupFilter = resourceGroupFilter.get("resourceGroup").toString();
+                    CountDownLatch countDownLatchAzure = new CountDownLatch(resources.size());
                     for (GenericResource resource : resources) {
                         String currentResourceFilter = resourceFilter.get("resource").toString();
                         String currentResourceTypeFilter = resourceTypeFilter.get("resourceType").toString();
@@ -97,16 +88,16 @@ class AzureMonitorTask implements AMonitorTaskRunnable{
                                 metricWriteHelper,
                                 azure,
                                 configuration.getMetricPrefix());
+
                         configuration.getContext().getExecutorService().execute("AzureMetrics", azureMetricsTask);
+                    }
+                    try{
+                        countDownLatchAzure.await();
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
                     }
                 }
             }
-        }
-
-        try{
-            countDownLatchAzure.await();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
         }
     }
 }
