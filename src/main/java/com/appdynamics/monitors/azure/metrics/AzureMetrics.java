@@ -38,12 +38,12 @@ import com.microsoft.azure.management.Azure;
 import com.microsoft.azure.management.monitor.MetricCollection;
 import com.microsoft.azure.management.monitor.MetricDefinition;
 import com.microsoft.azure.management.resources.GenericResource;
+import com.singularity.ee.agent.systemagent.api.MetricWriter;
 import com.fasterxml.jackson.databind.JsonNode;
 
 @SuppressWarnings("unchecked")
 public class AzureMetrics implements AMonitorTaskRunnable {
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(AzureMetrics.class);
-
     public final AtomicInteger azureMetricsCallCount = new AtomicInteger(0);
     public final AtomicInteger azureMetricDefinitionsCallCount = new AtomicInteger(0);
     private final Map<String, ?> resourceFilter;
@@ -107,11 +107,11 @@ public class AzureMetrics implements AMonitorTaskRunnable {
     }
 
     private void runTask(){
-        if (logger.isDebugEnabled()) {
-            logger.debug("Resource name ({}): {} {}", resource.name().matches(currentResourceFilter), resource.name(), currentResourceFilter);
-            logger.debug("Resource type ({}): {} {}", resource.type().matches(currentResourceTypeFilter), resource.type(), currentResourceTypeFilter);
-            logger.debug("Resource group ({}): {} {}", resource.resourceGroupName().matches("(?i:" + currentResourceGroupFilter + ")"), resource.resourceGroupName(), currentResourceGroupFilter);
-        }
+//        if (logger.isDebugEnabled()) {
+//            logger.debug("Resource name ({}): {} {}", resource.name().matches(currentResourceFilter), resource.name(), currentResourceFilter);
+//            logger.debug("Resource type ({}): {} {}", resource.type().matches(currentResourceTypeFilter), resource.type(), currentResourceTypeFilter);
+//            logger.debug("Resource group ({}): {} {}", resource.resourceGroupName().matches("(?i:" + currentResourceGroupFilter + ")"), resource.resourceGroupName(), currentResourceGroupFilter);
+//        }
         if (resource.name().matches(currentResourceFilter) &&
                 resource.type().matches(currentResourceTypeFilter) &&
                 resource.resourceGroupName().matches("(?i:" + currentResourceGroupFilter + ")")) {
@@ -136,27 +136,27 @@ public class AzureMetrics implements AMonitorTaskRunnable {
                 e.printStackTrace();
             }
         } else {
-            if (logger.isDebugEnabled()) {
-                logger.debug("Skipping Resource {} of Type {} in Group {} because of Resource Filter {} of Type Filter {} in Group Filter {}",
-                        resource.name(),
-                        resource.resourceType(),
-                        resource.resourceGroupName(),
-                        currentResourceTypeFilter,
-                        currentResourceTypeFilter,
-                        currentResourceGroupFilter);
-            }
+//            if (logger.isDebugEnabled()) {
+//                logger.debug("Skipping Resource {} of Type {} in Group {} because of Resource Filter {} of Type Filter {} in Group Filter {}",
+//                        resource.name(),
+//                        resource.resourceType(),
+//                        resource.resourceGroupName(),
+//                        currentResourceTypeFilter,
+//                        currentResourceTypeFilter,
+//                        currentResourceGroupFilter);
+//            }
         }
         if (finalMetricList.isEmpty()) {
-            if (logger.isDebugEnabled()) {
-                logger.debug("Metric List is empty");
-            }
+//            if (logger.isDebugEnabled()) {
+//                logger.debug("Metric List is empty");
+//            }
         } else {
             metricWriteHelper.transformAndPrintMetrics(finalMetricList);
         }
-        if (logger.isDebugEnabled()) {
-            logger.debug("azureMetricDefinitionsCallCount {}: {}", resource.id(), azureMetricDefinitionsCallCount);
-            logger.debug("azureMetricsCallCount: " + azureMetricsCallCount);
-        }
+//        if (logger.isDebugEnabled()) {
+//            logger.debug("azureMetricDefinitionsCallCount {}: {}", resource.id(), azureMetricDefinitionsCallCount);
+//            logger.debug("azureMetricsCallCount: " + azureMetricsCallCount);
+//        }
     }
 
     private void generateMetrics(List<MetricDefinition> resourceMetrics) throws MalformedURLException, UnsupportedEncodingException {
@@ -168,22 +168,27 @@ public class AzureMetrics implements AMonitorTaskRunnable {
         for (Map<String, ?> metricFilter : metricFilters) {
             for (MetricDefinition resourceMetric : resourceMetrics) {
                 String currentMetricFilter = metricFilter.get("metric").toString();
-                if (logger.isDebugEnabled()) {
-                    logger.debug("resourceMetric name ({})", resourceMetric.name().value());
-                    logger.debug("currentMetricFilter ({})", currentMetricFilter);
-                    logger.debug("match ({})", resourceMetric.name().value().matches(currentMetricFilter), resourceMetric.name().value(), currentMetricFilter);
-                }
+//                if (logger.isDebugEnabled()) {
+//                    logger.debug("resourceMetric name ({})", resourceMetric.name().value());
+//                    logger.debug("currentMetricFilter ({})", currentMetricFilter);
+//                    logger.debug("match ({})", resourceMetric.name().value().matches(currentMetricFilter), resourceMetric.name().value(), currentMetricFilter);
+//                }
 
                 String apiEndpointBase = resourceMetric.id().substring(0,StringUtils.ordinalIndexOf(resourceMetric.id(), "/", 11));
                 Object filterObject = metricFilter.get("filter");
-                String filter = filterObject == null ? "" : filterObject.toString();
-
+                String filter = filterObject == null ? null : filterObject.toString();
+                Object aggregatorObject = metricFilter.get("aggregator");
+                String aggregator = aggregatorObject == null ? "" : aggregatorObject.toString();
+                Object timeRollUpObject = metricFilter.get("timeRollUp");
+                String timeRollUp = timeRollUpObject == null ? "" : timeRollUpObject.toString();
+                Object clusterRollUpObject = metricFilter.get("clusterRollUp");
+                String clusterRollUp = clusterRollUpObject == null ? "" : clusterRollUpObject.toString();
                 if (resourceMetric.name().value().matches(currentMetricFilter)) {
-                    if (!filter.isEmpty()) {
-                        JsonNode apiResponse = getAzureMetrics(apiEndpointBase, resourceMetric.name().value(), filter);
+                    if (( filter != null && !filter.isEmpty() )|| !aggregator.isEmpty() || !timeRollUp.isEmpty() || !clusterRollUp.isEmpty() ) {
+                        JsonNode apiResponse = getAzureMetrics(apiEndpointBase, URLEncoder.encode(resourceMetric.name().value(), "UTF-8"), filter);
                         if (apiResponse != null) {
                             if (logger.isDebugEnabled()) {
-                                logger.debug("API response: " + apiResponse.toString());
+                                logger.debug("generateMetrics: API response: " + apiResponse.toString());
                             }
                             try {
                                 addMetric(resourceMetric, apiResponse, metricFilter);
@@ -199,16 +204,16 @@ public class AzureMetrics implements AMonitorTaskRunnable {
                         filteredMetricsNames.add(URLEncoder.encode(resourceMetric.name().value(), "UTF-8"));
                     }
                 } else {
-                    if (logger.isDebugEnabled()) {
-                        logger.debug("Not Reporting Metric {} for Resource {} as it is filtered by {}",
-                                resourceMetric.name().value(),
-                                resource.name(),
-                                currentMetricFilter);
-                    }
+//                    if (logger.isDebugEnabled()) {
+//                        logger.debug("Not Reporting Metric {} for Resource {} as it is filtered by {}",
+//                                resourceMetric.name().value(),
+//                                resource.name(),
+//                                currentMetricFilter);
+//                    }
                 }
             }
         }
-        logger.debug("filteredMetrics size ({})", filteredMetrics.size());
+//        logger.debug("filteredMetrics size ({})", filteredMetrics.size());
         consumeAndImportAzureMetrics(filteredMetrics, filteredMetricsNames);
     }
 
@@ -227,7 +232,7 @@ public class AzureMetrics implements AMonitorTaskRunnable {
                 JsonNode apiResponse = getAzureMetrics(apiEndpointBase, StringUtils.join(filteredMetricsNamesChunk, ','));
                 if (apiResponse != null) {
                     if (logger.isDebugEnabled()) {
-                        logger.debug("API response: " + apiResponse.toString());
+                        logger.debug("consumeAndImportAzureMetrics: API response: " + apiResponse.toString());
                     }
                     addMetrics(filteredMetricsChunk, apiResponse);
                 }
@@ -264,9 +269,9 @@ public class AzureMetrics implements AMonitorTaskRunnable {
         while (responseMetricsIterator.hasNext() && filteredMetricsIterator.hasNext()) {
             MetricDefinition resourceMetric = filteredMetricsIterator.next();
             JsonNode responseMetric = responseMetricsIterator.next();
-            if (logger.isDebugEnabled()) {
-                logger.debug("Response metric: {}", responseMetric.toString());
-            }
+//            if (logger.isDebugEnabled()) {
+//                logger.debug("Response metric: {}", responseMetric.toString());
+//            }
             addMetric(resourceMetric, responseMetric);
         }
     }
@@ -281,9 +286,7 @@ public class AzureMetrics implements AMonitorTaskRunnable {
     }
 
     private void addMetric(MetricDefinition resourceMetric, JsonNode responseMetric, Map<String, ?> metricFilter) throws Exception {
-        String metricAggregation = resourceMetric.primaryAggregationType().toString();
-        String metricName = resourceMetric.name().value();
-        String metricValue = null;
+        String azureMetricValue = null;
         String metricPath = metricPrefix +
                 Constants.METRIC_SEPARATOR +
                 subscriptionName +
@@ -294,61 +297,91 @@ public class AzureMetrics implements AMonitorTaskRunnable {
                 Constants.METRIC_SEPARATOR +
                 resource.name() +
                 Constants.METRIC_SEPARATOR;
-        if (logger.isDebugEnabled()) {
-            logger.debug("Metric name / aggregation / path: {} / {} / {}", metricName, metricAggregation, metricPath);
-        }
+//        if (logger.isDebugEnabled()) {
+//            logger.debug("Metric name / aggregation / path: {} / {} / {}", metricName, metricAggregation, metricPath);
+//        }
 
         JsonNode timeseries = responseMetric.findPath("timeseries");
-        logger.debug("timeseries.size():" + timeseries.size());
+//        logger.debug("timeseries.size():" + timeseries.size());
         if (timeseries.size() > 1) {
             throw new Exception("Multiple timeseries not supported");
         }
+        String azureMetricName = resourceMetric.name().value();
+        String azureMetricAggregation = resourceMetric.primaryAggregationType().toString();
+        String appdAggregationType = null;
+        String appdTimeRollUpType = null;
+        String appdClusterRollUpType = null;
         JsonNode data = timeseries.findPath("data");
-        switch (metricAggregation) {
-            case "Count":
-                metricValue = (data.path(0).path("count").isMissingNode()) ? null : data.get(0).get("count").toString();
-                break;
+        switch (azureMetricAggregation) {
             case "Average":
-                metricValue = (data.path(0).path("average").isMissingNode()) ? null : data.get(0).get("average").toString();
+                azureMetricValue = (data.path(0).path("average").isMissingNode()) ? null : data.get(0).get("average").toString();
+                appdAggregationType = MetricWriter.METRIC_AGGREGATION_TYPE_AVERAGE;
+                appdTimeRollUpType = MetricWriter.METRIC_TIME_ROLLUP_TYPE_AVERAGE;
+                appdClusterRollUpType = MetricWriter.METRIC_CLUSTER_ROLLUP_TYPE_INDIVIDUAL;
                 break;
             case "Total":
-                metricValue = (data.path(0).path("total").isMissingNode()) ? null : data.get(0).get("total").toString();
+                azureMetricValue = (data.path(0).path("total").isMissingNode()) ? null : data.get(0).get("total").toString();
+                appdAggregationType = MetricWriter.METRIC_AGGREGATION_TYPE_AVERAGE;
+                appdTimeRollUpType = MetricWriter.METRIC_TIME_ROLLUP_TYPE_SUM;
+                appdClusterRollUpType = MetricWriter.METRIC_CLUSTER_ROLLUP_TYPE_COLLECTIVE;
                 break;
             case "Maximum":
-                metricValue = (data.path(0).path("maximum").isMissingNode()) ? null : data.get(0).get("maximum").toString();
+                azureMetricValue = (data.path(0).path("maximum").isMissingNode()) ? null : data.get(0).get("maximum").toString();
+                appdTimeRollUpType = MetricWriter.METRIC_TIME_ROLLUP_TYPE_AVERAGE;
+                appdTimeRollUpType = MetricWriter.METRIC_TIME_ROLLUP_TYPE_AVERAGE;
+                appdClusterRollUpType = MetricWriter.METRIC_CLUSTER_ROLLUP_TYPE_INDIVIDUAL;
+                break;
+            case "Mininum":
+                azureMetricValue = (data.path(0).path("minimum").isMissingNode()) ? null : data.get(0).get("minimum").toString();
+                appdTimeRollUpType = MetricWriter.METRIC_TIME_ROLLUP_TYPE_AVERAGE;
+                appdTimeRollUpType = MetricWriter.METRIC_TIME_ROLLUP_TYPE_AVERAGE;
+                appdClusterRollUpType = MetricWriter.METRIC_CLUSTER_ROLLUP_TYPE_INDIVIDUAL;
                 break;
             default:
                 if (logger.isDebugEnabled()) {
                     logger.info("Not Reporting Metric {} for Resource {} as the aggregation type is not supported",
-                            metricName,
+                            azureMetricName,
                             resource.name());
                 }
                 break;
         }
-
-        if (metricValue == null) {
+        if (azureMetricValue == null) {
             if (logger.isDebugEnabled()) {
                 logger.debug("Ignoring Metric {} for Resource {} as it is null or empty",
-                        metricName,
+                        azureMetricName,
                         resource.name(),
-                        metricValue);
+                        azureMetricValue);
             }
         } else {
-            String subpath = "";
-            Object aliasObject = null;
             Object subpathObject = null;
+            Object aliasObject = null;
+            Object aggregatorObject = null;
+            Object timeRollUpObject = null;
+            Object clusterRollUpObject = null;
             if (metricFilter != null) {
                 aliasObject = metricFilter.get("alias");
                 subpathObject = metricFilter.get("subpath");
+                aggregatorObject = metricFilter.get("aggregator");
+                timeRollUpObject = metricFilter.get("timeRollUp");
+                clusterRollUpObject = metricFilter.get("clusterRollUp");
             }
-            metricName = aliasObject == null ? metricName : aliasObject.toString();
+            azureMetricName = aliasObject == null ? azureMetricName : aliasObject.toString();
+            String subpath = "";
             subpath = subpathObject == null ? "" : subpathObject.toString() + "|";
-            Metric metric = new Metric(metricName, metricValue, metricPath + subpath + metricName);
+            appdAggregationType = aggregatorObject == null ? appdAggregationType : MetricWriter.class.getDeclaredField(aggregatorObject.toString()).get(null).toString();
+            appdTimeRollUpType = timeRollUpObject == null ? appdTimeRollUpType : MetricWriter.class.getDeclaredField(timeRollUpObject.toString()).get(null).toString();
+            appdClusterRollUpType = clusterRollUpObject == null ? appdClusterRollUpType : MetricWriter.class.getDeclaredField(clusterRollUpObject.toString()).get(null).toString();
+            Metric metric = new Metric(azureMetricName,
+                    azureMetricValue,
+                    metricPath + subpath + azureMetricName,
+                    appdAggregationType,
+                    appdTimeRollUpType,
+                    appdClusterRollUpType);
             if (logger.isDebugEnabled()) {
                 logger.debug("Reporting Metric {} for Resource {} with value {}",
-                        metricName,
+                        azureMetricName,
                         resource.name(),
-                        metricValue);
+                        azureMetricValue);
             }
             finalMetricList.add(metric);
         }

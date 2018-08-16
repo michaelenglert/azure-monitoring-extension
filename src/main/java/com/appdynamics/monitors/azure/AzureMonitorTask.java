@@ -47,7 +47,7 @@ class AzureMonitorTask implements AMonitorTaskRunnable{
     @Override
     public void onTaskComplete() {
         logger.info("Task Complete");
-        logger.debug("azureResourcesCallCount: " + this.azureResourcesCallCount);
+//        logger.debug("azureResourcesCallCount: " + this.azureResourcesCallCount);
     }
 
     @Override
