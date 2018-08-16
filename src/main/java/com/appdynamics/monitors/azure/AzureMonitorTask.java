@@ -65,16 +65,8 @@ class AzureMonitorTask implements AMonitorTaskRunnable{
     private void runTask(){
         AzureAuth.getAzureAuth(subscription);
         Azure azure = Constants.azureMonitorAuth.withSubscription(subscription.get("subscriptionId").toString());
-        String subscriptionName;
         this.azureResourcesCallCount.incrementAndGet();
         PagedList<GenericResource> resources = azure.genericResources().list();
-        if (subscription.containsKey("subscriptionName")){
-            subscriptionName = subscription.get("subscriptionName").toString();
-        }
-        else {
-            subscriptionName = subscription.get("subscriptionId").toString();
-        }
-
         for (Map<String, ?> resourceGroupFilter : resourceGroupFilters) {
             List<Map<String, ?>> resourceTypeFilters = (List<Map<String, ?>>) resourceGroupFilter.get("resourceTypes");
             for (Map<String, ?> resourceTypeFilter : resourceTypeFilters) {
