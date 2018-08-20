@@ -17,6 +17,7 @@ import com.microsoft.aad.adal4j.AuthenticationResult;
 import com.microsoft.aad.adal4j.ClientCredential;
 import com.microsoft.azure.AzureEnvironment;
 import com.microsoft.azure.credentials.ApplicationTokenCredentials;
+import com.microsoft.azure.credentials.MSICredentials;
 import com.microsoft.azure.management.Azure;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,6 +33,7 @@ class AzureAuth {
     private static final Logger logger = LoggerFactory.getLogger(AzureAuth.class);
 
     static void getAzureAuth(Map<String, ?> subscription) {
+        Boolean useMSI = subscription.get("useMSI") == null ? false : Boolean.valueOf(subscription.get("useMSI").toString());
         String keyvaultClientSecretUrl = (String) subscription.get("keyvaultClientSecretUrl");
         String keyvaultClientId = (String) subscription.get("keyvaultClientId");
         String keyvaultClientKey = (String) subscription.get("keyvaultClientKey");
@@ -59,19 +61,32 @@ class AzureAuth {
             clientKey = keyVaultResponse.get("value").textValue();
         }
 
-        ApplicationTokenCredentials applicationTokenCredentials = new ApplicationTokenCredentials(
-                clientId,
-                tenantId,
-                clientKey,
-                AzureEnvironment.AZURE);
-        if (logger.isDebugEnabled()) {
-			Constants.azureMonitorAuth = Azure.configure().withLogLevel(com.microsoft.rest.LogLevel.BASIC).authenticate(applicationTokenCredentials);
+        if (useMSI) {
+            MSICredentials credentials = new MSICredentials(AzureEnvironment.AZURE);
+            if (logger.isDebugEnabled()) {
+                Constants.azureMonitorAuth = Azure.configure()
+                        .withLogLevel(com.microsoft.rest.LogLevel.BASIC)
+                        .authenticate(credentials);
+            } else {
+                Constants.azureMonitorAuth = Azure.authenticate(credentials);
+            }
         } else {
-			Constants.azureMonitorAuth = Azure.authenticate(applicationTokenCredentials);
+            ApplicationTokenCredentials applicationTokenCredentials = new ApplicationTokenCredentials(
+                    clientId,
+                    tenantId,
+                    clientKey,
+                    AzureEnvironment.AZURE);
+            if (logger.isDebugEnabled()) {
+                Constants.azureMonitorAuth = Azure.configure()
+                        .withLogLevel(com.microsoft.rest.LogLevel.BASIC)
+                        .authenticate(applicationTokenCredentials);
+            } else {
+                Constants.azureMonitorAuth = Azure.authenticate(applicationTokenCredentials);
+            }
+            AuthenticationResult azureAuthResult = getAuthenticationResult(clientId, clientKey, tenantId, Constants.AZURE_MANAGEMENT_URL);
+            Constants.azureAuthResult = azureAuthResult;
+            logger.debug("Bearer {}", azureAuthResult.getAccessToken());
         }
-        AuthenticationResult azureAuthResult = getAuthenticationResult(clientId, clientKey, tenantId, Constants.AZURE_MANAGEMENT_URL);
-        Constants.azureAuthResult = azureAuthResult;
-        logger.debug("Bearer {}", azureAuthResult.getAccessToken());
     }
 
     private static AuthenticationResult getAuthenticationResult(String Id, String Key, String tenantId, String resourceUrl){
