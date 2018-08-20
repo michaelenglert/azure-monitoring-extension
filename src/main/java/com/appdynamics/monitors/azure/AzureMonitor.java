@@ -48,9 +48,15 @@ public class AzureMonitor extends ABaseMonitor {
     protected void doRun(TasksExecutionServiceProvider tasksExecutionServiceProvider) {
         List<Map<String,?>> subscriptions = (List<Map<String,?>>)getContextConfiguration().getConfigYml().get("subscriptions");
         AssertUtils.assertNotNull(subscriptions, "The 'subscriptions' section in config.yml is not initialised");
+        CountDownLatch countDownLatch = new CountDownLatch(getTaskCount());
         for (Map<String, ?> subscription : subscriptions) {
-            AzureMonitorTask task = new AzureMonitorTask(getContextConfiguration(), tasksExecutionServiceProvider.getMetricWriteHelper(), subscription, new CountDownLatch(getTaskCount()));
+			AzureMonitorTask task = new AzureMonitorTask(getContextConfiguration(), tasksExecutionServiceProvider.getMetricWriteHelper(), subscription, countDownLatch);
             tasksExecutionServiceProvider.submit(subscription.get("subscriptionId").toString(),task);
+        }
+        try{
+            countDownLatch.await();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
     }
 
