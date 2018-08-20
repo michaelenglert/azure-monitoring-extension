@@ -25,8 +25,6 @@ import com.singularity.ee.agent.systemagent.api.exception.TaskExecutionException
 public class AzureMonitor extends ABaseMonitor {
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(AzureMonitorTask.class);
 
-    private static long startTime = System.currentTimeMillis();
-
     @Override
     protected String getDefaultMetricPrefix() {
         return Constants.DEFAULT_METRIC_PREFIX;
@@ -39,9 +37,8 @@ public class AzureMonitor extends ABaseMonitor {
 
     @Override
     public void onComplete() {
-        long finishTime = System.currentTimeMillis();
-        long totalTime = finishTime - startTime;
-        logger.debug("Total time: " + (totalTime / 1000.0f) + " ms");
+        logger.info("Monitor Completed");
+        System.exit(0);
     }
 
     @Override
