@@ -12,6 +12,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.LoggerFactory;
 
@@ -38,7 +39,6 @@ public class AzureMonitor extends ABaseMonitor {
     @Override
     public void onComplete() {
         logger.info("Monitor Completed");
-        System.exit(0);
     }
 
     @Override
