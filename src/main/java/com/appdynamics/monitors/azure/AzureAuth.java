@@ -21,8 +21,12 @@ import com.microsoft.azure.credentials.MSICredentials;
 import com.microsoft.azure.management.Azure;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLEncoder;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -44,23 +48,6 @@ class AzureAuth {
         String encryptedClientKey = (String) subscription.get("encryptedClientKey");
         String encryptedKeyvaultClientKey = (String) subscription.get("encryptedKeyvaultClientKey");
 
-        if (!Strings.isNullOrEmpty(encryptionKey) && !Strings.isNullOrEmpty(encryptedClientKey)) {
-            clientKey = Utilities.getDecryptedKey(encryptedClientKey, encryptionKey);
-        }
-
-        if (!Strings.isNullOrEmpty(encryptionKey) && !Strings.isNullOrEmpty(encryptedKeyvaultClientKey)) {
-            keyvaultClientKey = Utilities.getDecryptedKey(encryptedKeyvaultClientKey, encryptionKey);
-        }
-
-        if (!Strings.isNullOrEmpty(keyvaultClientId) && !Strings.isNullOrEmpty(keyvaultClientKey) && !Strings.isNullOrEmpty(keyvaultClientSecretUrl)){
-            URL keyvaultUrl = Utilities.getUrl(keyvaultClientSecretUrl + "?" + "api-version" +
-                                "=" + subscription.get("keyvault-api-version"));
-            AuthenticationResult azureKeyVaultAuth = getAuthenticationResult(keyvaultClientId, keyvaultClientKey, tenantId, Constants.AZURE_VAULT_URL);
-            JsonNode keyVaultResponse = AzureRestOperation.doGet(azureKeyVaultAuth.getAccessToken(), keyvaultUrl);
-            assert keyVaultResponse != null;
-            clientKey = keyVaultResponse.get("value").textValue();
-        }
-
         if (useMSI) {
             MSICredentials credentials = new MSICredentials(AzureEnvironment.AZURE);
             if (logger.isDebugEnabled()) {
@@ -70,7 +57,29 @@ class AzureAuth {
             } else {
                 Constants.azureMonitorAuth = Azure.authenticate(credentials);
             }
+
+            Constants.accessToken = getMSIAccessToken(subscription);
         } else {
+
+            if (!Strings.isNullOrEmpty(encryptionKey) && !Strings.isNullOrEmpty(encryptedClientKey)) {
+                clientKey = Utilities.getDecryptedKey(encryptedClientKey, encryptionKey);
+            }
+
+            if (!Strings.isNullOrEmpty(encryptionKey) && !Strings.isNullOrEmpty(encryptedKeyvaultClientKey)) {
+                keyvaultClientKey = Utilities.getDecryptedKey(encryptedKeyvaultClientKey, encryptionKey);
+            }
+
+            if (!Strings.isNullOrEmpty(keyvaultClientId) && !Strings.isNullOrEmpty(keyvaultClientKey) && !Strings.isNullOrEmpty(keyvaultClientSecretUrl)){
+                URL keyvaultUrl = Utilities.getUrl(keyvaultClientSecretUrl + "?" + "api-version" +
+                                    "=" + subscription.get("keyvault-api-version"));
+                AuthenticationResult azureKeyVaultAuth = getAuthenticationResult(keyvaultClientId, keyvaultClientKey, tenantId, Constants.AZURE_VAULT_URL);
+                Constants.accessToken = azureKeyVaultAuth.getAccessToken();
+                logger.debug("Bearer {}", azureKeyVaultAuth.getAccessToken());
+                JsonNode keyVaultResponse = AzureRestOperation.doGet(keyvaultUrl);
+                assert keyVaultResponse != null;
+                clientKey = keyVaultResponse.get("value").textValue();
+            }
+
             ApplicationTokenCredentials applicationTokenCredentials = new ApplicationTokenCredentials(
                     clientId,
                     tenantId,
@@ -87,6 +96,24 @@ class AzureAuth {
             Constants.accessToken = azureAuthResult.getAccessToken();
             logger.debug("Bearer {}", azureAuthResult.getAccessToken());
         }
+    }
+
+    private static String getMSIAccessToken(Map<String, ?> subscription) {
+        String resource = null;
+        try {
+            resource = URLEncoder.encode("https://management.azure.com/", "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        URL url = Utilities.getUrl(Constants.AZURE_MSI_TOKEN_ENDPOINT
+                + "?api-version=" + subscription.get("msi-token-api-version")
+                + "&resource=" + resource);
+        Map<String, String> headers = new HashMap<>();
+        headers.put("Metadata", "true");
+        JsonNode keyVaultResponse = AzureRestOperation.doGet(url, headers);
+
+        return keyVaultResponse.get("access_token").textValue();
     }
 
     private static AuthenticationResult getAuthenticationResult(String Id, String Key, String tenantId, String resourceUrl){

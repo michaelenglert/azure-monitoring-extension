@@ -256,7 +256,7 @@ public class AzureMetrics implements AMonitorTaskRunnable {
         }
         URL apiEndpointFull = new URL(url);
         azureMetricsCallCount.incrementAndGet();
-        JsonNode apiResponse = AzureRestOperation.doGet(Constants.accessToken, apiEndpointFull);
+        JsonNode apiResponse = AzureRestOperation.doGet(apiEndpointFull);
 
         return apiResponse;
     }
