@@ -20,5 +20,5 @@ public class Constants {
 	public static final String AZURE_VAULT_URL = "https://vault.azure.net";
 	public static final int AZURE_METRICS_CHUNK_SIZE = 20;
     public static Azure.Authenticated azureMonitorAuth = null;
-	public static AuthenticationResult azureAuthResult;
+	public static String accessToken;
 }

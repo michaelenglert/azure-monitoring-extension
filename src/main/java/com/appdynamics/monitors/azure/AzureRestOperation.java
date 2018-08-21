@@ -22,7 +22,7 @@ import java.security.*;
 public class AzureRestOperation {
     private static final Logger logger = LoggerFactory.getLogger(AzureRestOperation.class);
 
-    public static JsonNode doGet(AuthenticationResult azureAuth, URL url) {
+    public static JsonNode doGet(String accessToken, URL url) {
         try {
             logger.debug("--> GET " + url);
             ObjectMapper objectMapper = new ObjectMapper();
@@ -31,7 +31,7 @@ public class AzureRestOperation {
             conn = (HttpURLConnection) url.openConnection();
             conn.setDoOutput(true);
             conn.setRequestMethod("GET");
-            conn.setRequestProperty("Authorization", "Bearer " + azureAuth.getAccessToken());
+            conn.setRequestProperty("Authorization", "Bearer " + accessToken);
             conn.setRequestProperty("Content-Type", "application/json");
             BufferedReader br = new BufferedReader(new InputStreamReader(
                 (conn.getInputStream())));

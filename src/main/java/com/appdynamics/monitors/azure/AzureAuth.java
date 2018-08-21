@@ -56,7 +56,7 @@ class AzureAuth {
             URL keyvaultUrl = Utilities.getUrl(keyvaultClientSecretUrl + "?" + "api-version" +
                                 "=" + subscription.get("keyvault-api-version"));
             AuthenticationResult azureKeyVaultAuth = getAuthenticationResult(keyvaultClientId, keyvaultClientKey, tenantId, Constants.AZURE_VAULT_URL);
-            JsonNode keyVaultResponse = AzureRestOperation.doGet(azureKeyVaultAuth, keyvaultUrl);
+            JsonNode keyVaultResponse = AzureRestOperation.doGet(azureKeyVaultAuth.getAccessToken(), keyvaultUrl);
             assert keyVaultResponse != null;
             clientKey = keyVaultResponse.get("value").textValue();
         }
@@ -84,7 +84,7 @@ class AzureAuth {
                 Constants.azureMonitorAuth = Azure.authenticate(applicationTokenCredentials);
             }
             AuthenticationResult azureAuthResult = getAuthenticationResult(clientId, clientKey, tenantId, Constants.AZURE_MANAGEMENT_URL);
-            Constants.azureAuthResult = azureAuthResult;
+            Constants.accessToken = azureAuthResult.getAccessToken();
             logger.debug("Bearer {}", azureAuthResult.getAccessToken());
         }
     }
@@ -95,8 +95,7 @@ class AzureAuth {
         String authority = "https://login.microsoftonline.com/" + tenantId;
 
         try {
-            AuthenticationContext context;
-            context = new AuthenticationContext(authority, false, service);
+            AuthenticationContext context = new AuthenticationContext(authority, false, service);
             ClientCredential cred = new ClientCredential(Id, Key);
             Future<AuthenticationResult> future = context.acquireToken(resourceUrl, cred, null);
             result = future.get();
