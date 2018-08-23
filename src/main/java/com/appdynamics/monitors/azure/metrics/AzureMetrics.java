@@ -192,8 +192,6 @@ public class AzureMetrics implements AMonitorTaskRunnable {
                                 // TODO Auto-generated catch block
                                 e.printStackTrace();
                             }
-
-                            return;
                         }
                     } else {
                         filteredMetrics.add(resourceMetric);
