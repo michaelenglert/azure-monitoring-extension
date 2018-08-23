@@ -51,7 +51,7 @@ public class AzureMonitor extends ABaseMonitor {
             tasksExecutionServiceProvider.submit(subscription.get("subscriptionId").toString(),task);
         }
         try{
-            countDownLatch.await();
+            countDownLatch.await(45, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
