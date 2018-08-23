@@ -8,9 +8,9 @@
 
 package com.appdynamics.monitors.azure;
 
+import com.appdynamics.monitors.azure.utils.Constants;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.microsoft.aad.adal4j.AuthenticationResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import javax.net.ssl.*;
@@ -18,11 +18,19 @@ import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.security.*;
+import java.util.HashMap;
+import java.util.Map;
 
 public class AzureRestOperation {
     private static final Logger logger = LoggerFactory.getLogger(AzureRestOperation.class);
 
-    public static JsonNode doGet(AuthenticationResult azureAuth, URL url) {
+    public static JsonNode doGet(URL url) {
+        Map<String, String> headers = new HashMap<>();
+        headers.put("Authorization", "Bearer " + Constants.accessToken);
+        return doGet(url, headers);
+    }
+
+    public static JsonNode doGet(URL url, Map<String,String> headers) {
         try {
             logger.debug("--> GET " + url);
             ObjectMapper objectMapper = new ObjectMapper();
@@ -31,7 +39,9 @@ public class AzureRestOperation {
             conn = (HttpURLConnection) url.openConnection();
             conn.setDoOutput(true);
             conn.setRequestMethod("GET");
-            conn.setRequestProperty("Authorization", "Bearer " + azureAuth.getAccessToken());
+            for (Map.Entry <String, String> header : headers.entrySet()) {
+                conn.setRequestProperty(header.getKey(), header.getValue());
+            }
             conn.setRequestProperty("Content-Type", "application/json");
             BufferedReader br = new BufferedReader(new InputStreamReader(
                 (conn.getInputStream())));

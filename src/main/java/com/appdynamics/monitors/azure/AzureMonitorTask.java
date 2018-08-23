@@ -29,6 +29,8 @@ class AzureMonitorTask implements AMonitorTaskRunnable{
 
     private final AtomicInteger azureResourcesCallCount = new AtomicInteger(0);
 
+    private static long startTime = System.currentTimeMillis();
+
     private final MonitorContextConfiguration configuration;
     private final MetricWriteHelper metricWriteHelper;
     private final Map<String, ?> subscription;
@@ -46,7 +48,10 @@ class AzureMonitorTask implements AMonitorTaskRunnable{
 
     @Override
     public void onTaskComplete() {
-        logger.info("Task Complete");
+        logger.info("Task Completed for subscription {}", subscription.get("subscriptionId").toString());
+        long finishTime = System.currentTimeMillis();
+        long totalTime = finishTime - startTime;
+        logger.debug("Total time: " + (totalTime / 1000.0f) + " ms");
 //        logger.debug("azureResourcesCallCount: " + this.azureResourcesCallCount);
     }
 

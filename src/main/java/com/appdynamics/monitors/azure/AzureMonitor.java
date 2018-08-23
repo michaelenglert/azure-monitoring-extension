@@ -12,6 +12,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.LoggerFactory;
 
@@ -25,8 +26,6 @@ import com.singularity.ee.agent.systemagent.api.exception.TaskExecutionException
 public class AzureMonitor extends ABaseMonitor {
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(AzureMonitorTask.class);
 
-    private static long startTime = System.currentTimeMillis();
-
     @Override
     protected String getDefaultMetricPrefix() {
         return Constants.DEFAULT_METRIC_PREFIX;
@@ -39,9 +38,7 @@ public class AzureMonitor extends ABaseMonitor {
 
     @Override
     public void onComplete() {
-        long finishTime = System.currentTimeMillis();
-        long totalTime = finishTime - startTime;
-        logger.debug("Total time: " + (totalTime / 1000.0f) + " ms");
+        logger.info("Monitor Completed");
     }
 
     @Override
@@ -54,7 +51,7 @@ public class AzureMonitor extends ABaseMonitor {
             tasksExecutionServiceProvider.submit(subscription.get("subscriptionId").toString(),task);
         }
         try{
-            countDownLatch.await();
+            countDownLatch.await(45, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }

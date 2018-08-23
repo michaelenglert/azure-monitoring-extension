@@ -8,6 +8,20 @@
 
 package com.appdynamics.monitors.azure;
 
+import java.io.UnsupportedEncodingException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLEncoder;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.appdynamics.monitors.azure.utils.Constants;
 import com.appdynamics.monitors.azure.utils.Utilities;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -17,35 +31,70 @@ import com.microsoft.aad.adal4j.AuthenticationResult;
 import com.microsoft.aad.adal4j.ClientCredential;
 import com.microsoft.azure.AzureEnvironment;
 import com.microsoft.azure.credentials.ApplicationTokenCredentials;
+import com.microsoft.azure.credentials.MSICredentials;
 import com.microsoft.azure.management.Azure;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.Map;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 
 class AzureAuth {
     private static final Logger logger = LoggerFactory.getLogger(AzureAuth.class);
 
     static void getAzureAuth(Map<String, ?> subscription) {
-        String keyvaultClientSecretUrl = (String) subscription.get("keyvaultClientSecretUrl");
-        String keyvaultClientId = (String) subscription.get("keyvaultClientId");
-        String keyvaultClientKey = (String) subscription.get("keyvaultClientKey");
+        Boolean useMSI = subscription.get("useMSI") == null ? false : Boolean.valueOf(subscription.get("useMSI").toString());
+        if (useMSI) {
+            MSICredentials credentials = new MSICredentials(AzureEnvironment.AZURE);
+            if (logger.isDebugEnabled()) {
+                Constants.azureMonitorAuth = Azure
+                        .configure()
+                        .withLogLevel(com.microsoft.rest.LogLevel.BASIC)
+                        .authenticate(credentials);
+            } else {
+                Constants.azureMonitorAuth = Azure.authenticate(credentials);
+            }
+
+            Constants.accessToken = getMSIAccessToken(subscription);
+            logger.debug("MSI: Bearer {}", Constants.accessToken);
+
+        } else {
+            authorizeWithClientCredentials(subscription);
+        }
+    }
+
+    private static void authorizeWithClientCredentials(Map<String, ?> subscription) {
         String clientId = (String) subscription.get("clientId");
         String clientKey = (String) subscription.get("clientKey");
+        String tenantId = (String) subscription.get("tenantId");
+
+        String encryptedOrKeyVaultClientKey= getEncryptedOrKeyVaultClientKey(subscription);
+        if (encryptedOrKeyVaultClientKey != null) clientKey = encryptedOrKeyVaultClientKey;
+
+        ApplicationTokenCredentials applicationTokenCredentials = new ApplicationTokenCredentials(
+                clientId,
+                tenantId,
+                clientKey,
+                AzureEnvironment.AZURE);
+        if (logger.isDebugEnabled()) {
+            Constants.azureMonitorAuth = Azure.configure()
+                    .withLogLevel(com.microsoft.rest.LogLevel.BASIC)
+                    .authenticate(applicationTokenCredentials);
+        } else {
+            Constants.azureMonitorAuth = Azure.authenticate(applicationTokenCredentials);
+        }
+        AuthenticationResult azureAuthResult = getAuthenticationResult(clientId, clientKey, tenantId, Constants.AZURE_MANAGEMENT_URL);
+        Constants.accessToken = azureAuthResult.getAccessToken();
+        logger.debug("Bearer {}", azureAuthResult.getAccessToken());
+    }
+
+    private static String getEncryptedOrKeyVaultClientKey(Map<String, ?> subscription) {
+        String clientKey = null;
         String tenantId = (String) subscription.get("tenantId");
         String encryptionKey = (String) subscription.get("encryption-key");
         String encryptedClientKey = (String) subscription.get("encryptedClientKey");
         String encryptedKeyvaultClientKey = (String) subscription.get("encryptedKeyvaultClientKey");
-
         if (!Strings.isNullOrEmpty(encryptionKey) && !Strings.isNullOrEmpty(encryptedClientKey)) {
             clientKey = Utilities.getDecryptedKey(encryptedClientKey, encryptionKey);
         }
-
+        String keyvaultClientSecretUrl = (String) subscription.get("keyvaultClientSecretUrl");
+        String keyvaultClientId = (String) subscription.get("keyvaultClientId");
+        String keyvaultClientKey = (String) subscription.get("keyvaultClientKey");
         if (!Strings.isNullOrEmpty(encryptionKey) && !Strings.isNullOrEmpty(encryptedKeyvaultClientKey)) {
             keyvaultClientKey = Utilities.getDecryptedKey(encryptedKeyvaultClientKey, encryptionKey);
         }
@@ -54,24 +103,31 @@ class AzureAuth {
             URL keyvaultUrl = Utilities.getUrl(keyvaultClientSecretUrl + "?" + "api-version" +
                                 "=" + subscription.get("keyvault-api-version"));
             AuthenticationResult azureKeyVaultAuth = getAuthenticationResult(keyvaultClientId, keyvaultClientKey, tenantId, Constants.AZURE_VAULT_URL);
-            JsonNode keyVaultResponse = AzureRestOperation.doGet(azureKeyVaultAuth, keyvaultUrl);
+            Constants.accessToken = azureKeyVaultAuth.getAccessToken();
+            logger.debug("Bearer {}", azureKeyVaultAuth.getAccessToken());
+            JsonNode keyVaultResponse = AzureRestOperation.doGet(keyvaultUrl);
             assert keyVaultResponse != null;
             clientKey = keyVaultResponse.get("value").textValue();
         }
+        return clientKey;
+    }
 
-        ApplicationTokenCredentials applicationTokenCredentials = new ApplicationTokenCredentials(
-                clientId,
-                tenantId,
-                clientKey,
-                AzureEnvironment.AZURE);
-        if (logger.isDebugEnabled()) {
-			Constants.azureMonitorAuth = Azure.configure().withLogLevel(com.microsoft.rest.LogLevel.BASIC).authenticate(applicationTokenCredentials);
-        } else {
-			Constants.azureMonitorAuth = Azure.authenticate(applicationTokenCredentials);
+    private static String getMSIAccessToken(Map<String, ?> subscription) {
+        String resource = null;
+        try {
+            resource = URLEncoder.encode("https://management.azure.com/", "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
         }
-        AuthenticationResult azureAuthResult = getAuthenticationResult(clientId, clientKey, tenantId, Constants.AZURE_MANAGEMENT_URL);
-        Constants.azureAuthResult = azureAuthResult;
-        logger.debug("Bearer {}", azureAuthResult.getAccessToken());
+        URL url = Utilities.getUrl(Constants.AZURE_MSI_TOKEN_ENDPOINT
+                + "?api-version=" + subscription.get("msi-token-api-version")
+                + "&resource=" + resource);
+        Map<String, String> headers = new HashMap<>();
+        headers.put("Metadata", "true");
+        JsonNode keyVaultResponse = AzureRestOperation.doGet(url, headers);
+
+        return keyVaultResponse.get("access_token").textValue();
     }
 
     private static AuthenticationResult getAuthenticationResult(String Id, String Key, String tenantId, String resourceUrl){
@@ -80,8 +136,7 @@ class AzureAuth {
         String authority = "https://login.microsoftonline.com/" + tenantId;
 
         try {
-            AuthenticationContext context;
-            context = new AuthenticationContext(authority, false, service);
+            AuthenticationContext context = new AuthenticationContext(authority, false, service);
             ClientCredential cred = new ClientCredential(Id, Key);
             Future<AuthenticationResult> future = context.acquireToken(resourceUrl, cred, null);
             result = future.get();
