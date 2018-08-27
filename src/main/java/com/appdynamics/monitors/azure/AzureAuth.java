@@ -33,21 +33,23 @@ import com.microsoft.azure.AzureEnvironment;
 import com.microsoft.azure.credentials.ApplicationTokenCredentials;
 import com.microsoft.azure.credentials.MSICredentials;
 import com.microsoft.azure.management.Azure;
+import com.microsoft.azure.management.Azure.Authenticated;
 
-class AzureAuth {
+public class AzureAuth {
     private static final Logger logger = LoggerFactory.getLogger(AzureAuth.class);
+    private static Authenticated azureMonitorAuth;
 
-    static void getAzureAuth(Map<String, ?> subscription) {
+    public static void authorizeAzure(Map<String, ?> subscription) {
         Boolean useMSI = subscription.get("useMSI") == null ? false : Boolean.valueOf(subscription.get("useMSI").toString());
         if (useMSI) {
             MSICredentials credentials = new MSICredentials(AzureEnvironment.AZURE);
             if (logger.isDebugEnabled()) {
-                Constants.azureMonitorAuth = Azure
+                azureMonitorAuth = Azure
                         .configure()
                         .withLogLevel(com.microsoft.rest.LogLevel.BASIC)
                         .authenticate(credentials);
             } else {
-                Constants.azureMonitorAuth = Azure.authenticate(credentials);
+                azureMonitorAuth = Azure.authenticate(credentials);
             }
 
             Constants.accessToken = getMSIAccessToken(subscription);
@@ -72,11 +74,11 @@ class AzureAuth {
                 clientKey,
                 AzureEnvironment.AZURE);
         if (logger.isDebugEnabled()) {
-            Constants.azureMonitorAuth = Azure.configure()
+            azureMonitorAuth = Azure.configure()
                     .withLogLevel(com.microsoft.rest.LogLevel.BASIC)
                     .authenticate(applicationTokenCredentials);
         } else {
-            Constants.azureMonitorAuth = Azure.authenticate(applicationTokenCredentials);
+            azureMonitorAuth = Azure.authenticate(applicationTokenCredentials);
         }
         AuthenticationResult azureAuthResult = getAuthenticationResult(clientId, clientKey, tenantId, Constants.AZURE_MANAGEMENT_URL);
         Constants.accessToken = azureAuthResult.getAccessToken();
@@ -149,5 +151,9 @@ class AzureAuth {
         }
         service.shutdown();
         return result;
+    }
+
+    public static Authenticated getAzureMonitorAuth() {
+        return azureMonitorAuth;
     }
 }
