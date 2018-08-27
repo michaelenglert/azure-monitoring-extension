@@ -48,6 +48,9 @@ public class AzureRestOperation {
             //noinspection StatementWithEmptyBody
             for (String line; (line = br.readLine()) != null; response += line);
             conn.disconnect();
+            if (logger.isDebugEnabled()) {
+                logger.debug("API response: " + response);
+            }
             return objectMapper.readTree(response);
         } catch (IOException e) {
             logger.error("Error while processing GET on URL {}", url, e);

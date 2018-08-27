@@ -10,70 +10,60 @@ package com.appdynamics.monitors.azure.metrics;
 
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
-import java.net.URL;
 import java.net.URLEncoder;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.collections4.ListUtils;
-import org.joda.time.DateTime;
-import org.joda.time.DateTimeZone;
 import org.slf4j.LoggerFactory;
 
 import com.appdynamics.extensions.AMonitorTaskRunnable;
 import com.appdynamics.extensions.MetricWriteHelper;
 import com.appdynamics.extensions.metrics.Metric;
-import com.appdynamics.monitors.azure.AzureRestOperation;
 import com.appdynamics.monitors.azure.utils.Constants;
+import com.appdynamics.monitors.azure.utils.Resource;
+import com.appdynamics.monitors.azure.utils.MetricDefinition;
+import com.appdynamics.monitors.azure.utils.AzureAPIWrapper;
 import com.google.common.collect.Lists;
-import com.microsoft.azure.management.Azure;
-import com.microsoft.azure.management.monitor.MetricDefinition;
-import com.microsoft.azure.management.resources.GenericResource;
 import com.singularity.ee.agent.systemagent.api.MetricWriter;
 import com.fasterxml.jackson.databind.JsonNode;
 
 @SuppressWarnings("unchecked")
 public class AzureMetrics implements AMonitorTaskRunnable {
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(AzureMetrics.class);
-    public final AtomicInteger azureMetricsCallCount = new AtomicInteger(0);
-    public final AtomicInteger azureMetricDefinitionsCallCount = new AtomicInteger(0);
     private final Map<String, ?> resourceFilter;
     private final String currentResourceGroupFilter;
     private final String currentResourceFilter;
     private final String currentResourceTypeFilter;
-    private final GenericResource resource;
-    private final Map<String, ?> subscription;
+    private final Resource resource;
     private final String subscriptionName;
     private final CountDownLatch countDownLatch;
     private final MetricWriteHelper metricWriteHelper;
-    private final Azure azure;
     private final String metricPrefix;
     private final List<Metric> finalMetricList = Lists.newArrayList();
-    private final DateTime recordDateTime = DateTime.now(DateTimeZone.UTC);
+    private AzureAPIWrapper azure;
 
-    public AzureMetrics(Map<String, ?> resourceFilter,
+    public AzureMetrics(AzureAPIWrapper azure,
+                        Map<String, ?> resourceFilter,
                         String currentResourceGroupFilter,
                         String currentResourceFilter,
                         String currentResourceTypeFilter,
-                        GenericResource resource,
+                        Resource resource,
                         Map<String, ?> subscription,
                         CountDownLatch countDownLatch,
                         MetricWriteHelper metricWriteHelper,
-                        Azure azure,
                         String metricPrefix) {
+        this.azure = azure;
         this.resourceFilter = resourceFilter;
         this.currentResourceGroupFilter = currentResourceGroupFilter;
         this.currentResourceFilter = currentResourceFilter;
         this.currentResourceTypeFilter = currentResourceTypeFilter;
         this.resource = resource;
-        this.subscription = subscription;
         this.countDownLatch = countDownLatch;
         this.metricWriteHelper = metricWriteHelper;
-        this.azure = azure;
         this.metricPrefix = metricPrefix;
         if (subscription.containsKey("subscriptionName")){
             subscriptionName = subscription.get("subscriptionName").toString();
@@ -107,22 +97,21 @@ public class AzureMetrics implements AMonitorTaskRunnable {
 //            logger.debug("Resource type ({}): {} {}", resource.type().matches(currentResourceTypeFilter), resource.type(), currentResourceTypeFilter);
 //            logger.debug("Resource group ({}): {} {}", resource.resourceGroupName().matches("(?i:" + currentResourceGroupFilter + ")"), resource.resourceGroupName(), currentResourceGroupFilter);
 //        }
-        if (resource.name().matches(currentResourceFilter) &&
-                resource.type().matches(currentResourceTypeFilter) &&
-                resource.resourceGroupName().matches("(?i:" + currentResourceGroupFilter + ")")) {
+        if (resource.getName().matches(currentResourceFilter) &&
+                resource.getType().matches(currentResourceTypeFilter) &&
+                resource.getResourceGroupName().matches("(?i:" + currentResourceGroupFilter + ")")) {
             if (logger.isDebugEnabled()) {
                 logger.debug("Working on Resource {} of Type {} in Group {} because of Resource Filter {} of Type Filter {} in Group Filter {}",
-                        resource.name(),
-                        resource.resourceType(),
-                        resource.resourceGroupName(),
+                        resource.getName(),
+                        resource.getResourceType(),
+                        resource.getResourceGroupName(),
                         currentResourceTypeFilter,
                         currentResourceTypeFilter,
                         currentResourceGroupFilter);
             }
-            azureMetricDefinitionsCallCount.incrementAndGet();
-            List<MetricDefinition> resourceMetrics = azure.metricDefinitions().listByResource(resource.id());
+            List<MetricDefinition> metricDefinitions = azure.getMetricDefinitions(resource.getId());
             try {
-                generateMetrics(resourceMetrics);
+                generateMetrics(metricDefinitions);
             } catch (MalformedURLException e) {
                 // TODO Auto-generated catch block
                 e.printStackTrace();
@@ -154,7 +143,7 @@ public class AzureMetrics implements AMonitorTaskRunnable {
 //        }
     }
 
-    private void generateMetrics(List<MetricDefinition> resourceMetrics) throws MalformedURLException, UnsupportedEncodingException {
+    private void generateMetrics(List<MetricDefinition> metricDefinitions) throws MalformedURLException, UnsupportedEncodingException {
         List<Map<String, ?>> metricConfigs = (List<Map<String, ?>>) resourceFilter.get("metrics");
 
         List<MetricDefinition> filteredMetrics = Lists.newArrayList();
@@ -162,40 +151,28 @@ public class AzureMetrics implements AMonitorTaskRunnable {
         List<Map<String, ?>> filteredMetricsConfig = Lists.newArrayList();
 
         for (Map<String, ?> metricConfig : metricConfigs) {
-            for (MetricDefinition resourceMetric : resourceMetrics) {
+            for (MetricDefinition metricDefinition : metricDefinitions) {
                 String currentMetricConfig = metricConfig.get("metric").toString();
 //                if (logger.isDebugEnabled()) {
 //                    logger.debug("resourceMetric name ({})", resourceMetric.name().value());
 //                    logger.debug("currentMetricConfig ({})", currentMetricConfig);
 //                    logger.debug("match ({})", resourceMetric.name().value().matches(currentMetricConfig), resourceMetric.name().value(), currentMetricConfig);
 //                }
-
-                String apiEndpointBase = resourceMetric.id().substring(0,StringUtils.ordinalIndexOf(resourceMetric.id(), "/", 11));
-                Object filterObject = metricConfig.get("filter");
-                String filter = filterObject == null ? null : filterObject.toString();
-                Object aggregatorObject = metricConfig.get("aggregator");
-                String aggregator = aggregatorObject == null ? "" : aggregatorObject.toString();
-                Object timeRollUpObject = metricConfig.get("timeRollUp");
-                String timeRollUp = timeRollUpObject == null ? "" : timeRollUpObject.toString();
-                Object clusterRollUpObject = metricConfig.get("clusterRollUp");
-                String clusterRollUp = clusterRollUpObject == null ? "" : clusterRollUpObject.toString();
-                if (resourceMetric.name().value().matches(currentMetricConfig)) {
-                    if (( filter != null && !filter.isEmpty() )|| !aggregator.isEmpty() || !timeRollUp.isEmpty() || !clusterRollUp.isEmpty() ) {
-                        JsonNode apiResponse = getAzureMetrics(apiEndpointBase, URLEncoder.encode(resourceMetric.name().value(), "UTF-8"), filter);
-                        if (apiResponse != null) {
-                            if (logger.isDebugEnabled()) {
-                                logger.debug("generateMetrics: API response: " + apiResponse.toString());
-                            }
-                            try {
-                                addMetric(resourceMetric, apiResponse, metricConfig);
-                            } catch (Exception e) {
-                                // TODO Auto-generated catch block
-                                e.printStackTrace();
-                            }
+                if (metricDefinition.getName().matches(currentMetricConfig)) {
+                    Object filterObject = metricConfig.get("filter");
+                    String filter = filterObject == null ? null : filterObject.toString();
+                    boolean hasQualifiers = hasQualifiers(metricConfig);
+                    if (( filter != null && !filter.isEmpty() ) || hasQualifiers ) {
+                        JsonNode apiResponse = azure.getMetrics(metricDefinition, URLEncoder.encode(metricDefinition.getName(), "UTF-8"), filter);
+                        try {
+                            addMetric(metricDefinition, apiResponse, metricConfig);
+                        } catch (Exception e) {
+                            // TODO Auto-generated catch block
+                            e.printStackTrace();
                         }
                     } else {
-                        filteredMetrics.add(resourceMetric);
-                        filteredMetricsNames.add(URLEncoder.encode(resourceMetric.name().value(), "UTF-8"));
+                        filteredMetrics.add(metricDefinition);
+                        filteredMetricsNames.add(URLEncoder.encode(metricDefinition.getName(), "UTF-8"));
                         filteredMetricsConfig.add(metricConfig);
                     }
                 } else {
@@ -212,6 +189,17 @@ public class AzureMetrics implements AMonitorTaskRunnable {
         consumeAndImportAzureMetrics(filteredMetrics, filteredMetricsNames, filteredMetricsConfig);
     }
 
+    public boolean hasQualifiers(Map<String, ?> metricConfig) {
+        Object aggregatorObject = metricConfig.get("aggregator");
+        String aggregator = aggregatorObject == null ? "" : aggregatorObject.toString();
+        Object timeRollUpObject = metricConfig.get("timeRollUp");
+        String timeRollUp = timeRollUpObject == null ? "" : timeRollUpObject.toString();
+        Object clusterRollUpObject = metricConfig.get("clusterRollUp");
+        String clusterRollUp = clusterRollUpObject == null ? "" : clusterRollUpObject.toString();
+        boolean hasQualifiers = !aggregator.isEmpty() || !timeRollUp.isEmpty() || !clusterRollUp.isEmpty();
+        return hasQualifiers;
+    }
+
     private void consumeAndImportAzureMetrics(List<MetricDefinition> filteredMetrics, List<String> filteredMetricsNames, List<Map<String, ?>> filteredMetricsConfig) throws MalformedURLException, UnsupportedEncodingException {
         if (!filteredMetrics.isEmpty()) {
             List<List<MetricDefinition>> filteredMetricsChunks = ListUtils.partition(filteredMetrics, Constants.AZURE_METRICS_CHUNK_SIZE);
@@ -221,42 +209,16 @@ public class AzureMetrics implements AMonitorTaskRunnable {
             Iterator<List<String>> filteredMetricsNamesIterator = filteredMetricsNamesChunks.iterator();
             Iterator<List<Map<String, ?>>> filteredMetricsConfigIterator = filteredMetricsConfigChunks.iterator();
 
-            String apiEndpointBase = filteredMetrics.get(0).id().substring(0,StringUtils.ordinalIndexOf(filteredMetrics.get(0).id(), "/", 11));
-
             while (filteredMetricsIterator.hasNext() && filteredMetricsNamesIterator.hasNext() && filteredMetricsConfigIterator.hasNext()) {
                 List<MetricDefinition> filteredMetricsChunk = filteredMetricsIterator.next();
                 List<String> filteredMetricsNamesChunk = filteredMetricsNamesIterator.next();
                 List<Map<String, ?>> filteredMetricsConfigChunk = filteredMetricsConfigIterator.next();
-                JsonNode apiResponse = getAzureMetrics(apiEndpointBase, StringUtils.join(filteredMetricsNamesChunk, ','));
+                JsonNode apiResponse = azure.getMetrics(filteredMetrics.get(0), StringUtils.join(filteredMetricsNamesChunk, ','));
                 if (apiResponse != null) {
-                    if (logger.isDebugEnabled()) {
-                        logger.debug("consumeAndImportAzureMetrics: API response: " + apiResponse.toString());
-                    }
                     addMetrics(filteredMetricsChunk, filteredMetricsConfigChunk, apiResponse);
                 }
             }
         }
-    }
-
-    private JsonNode getAzureMetrics(String apiEndpointBase, String metricNames) throws MalformedURLException, UnsupportedEncodingException {
-        return getAzureMetrics(apiEndpointBase, metricNames, null);
-    }
-
-    private JsonNode getAzureMetrics(String apiEndpointBase, String metricNames,
-        String filter) throws MalformedURLException, UnsupportedEncodingException {
-        String url = Constants.AZURE_MANAGEMENT_URL
-                + apiEndpointBase
-                + "/metrics?timespan=" + recordDateTime.minusMinutes(2).toDateTimeISO() + "/" + recordDateTime.toDateTimeISO()
-                + "&metricnames=" + metricNames
-                + "&api-version=" + subscription.get("api-version");
-        if (filter != null) {
-            url += "&$filter=" + URLEncoder.encode(filter, "UTF-8");
-        }
-        URL apiEndpointFull = new URL(url);
-        azureMetricsCallCount.incrementAndGet();
-        JsonNode apiResponse = AzureRestOperation.doGet(apiEndpointFull);
-
-        return apiResponse;
     }
 
     private void addMetrics(List<MetricDefinition> filteredMetricsChunk, List<Map<String, ?>> filteredMetricsConfigChunk, JsonNode responseMetrics) {
@@ -282,16 +244,17 @@ public class AzureMetrics implements AMonitorTaskRunnable {
     }
 
     private void addMetric(MetricDefinition resourceMetric, JsonNode responseMetric, Map<String, ?> metricConfig) throws Exception {
+        if (responseMetric == null) return;
         String azureMetricValue = null;
         String metricPath = metricPrefix +
                 Constants.METRIC_SEPARATOR +
                 subscriptionName +
                 Constants.METRIC_SEPARATOR +
-                resource.resourceGroupName() +
+                resource.getResourceGroupName() +
                 Constants.METRIC_SEPARATOR +
-                resource.resourceType() +
+                resource.getResourceType() +
                 Constants.METRIC_SEPARATOR +
-                resource.name() +
+                resource.getName() +
                 Constants.METRIC_SEPARATOR;
 //        if (logger.isDebugEnabled()) {
 //            logger.debug("Metric name / aggregation / path: {} / {} / {}", metricName, metricAggregation, metricPath);
@@ -302,8 +265,8 @@ public class AzureMetrics implements AMonitorTaskRunnable {
         if (timeseries.size() > 1) {
             throw new Exception("Multiple timeseries not supported");
         }
-        String azureMetricName = resourceMetric.name().value();
-        String azureMetricAggregation = resourceMetric.primaryAggregationType().toString();
+        String azureMetricName = resourceMetric.getName();
+        String azureMetricAggregation = resourceMetric.getPrimaryAggregationType().toString();
         String appdAggregationType = null;
         String appdTimeRollUpType = null;
         String appdClusterRollUpType = null;
@@ -316,7 +279,7 @@ public class AzureMetrics implements AMonitorTaskRunnable {
                 appdClusterRollUpType = MetricWriter.METRIC_CLUSTER_ROLLUP_TYPE_INDIVIDUAL;
                 break;
             case "Count":
-                azureMetricValue = (data.path(0).path("total").isMissingNode()) ? null : data.get(0).get("count").toString();
+                azureMetricValue = (data.path(0).path("count").isMissingNode()) ? null : data.get(0).get("count").toString();
                 appdAggregationType = MetricWriter.METRIC_AGGREGATION_TYPE_AVERAGE;
                 appdTimeRollUpType = MetricWriter.METRIC_TIME_ROLLUP_TYPE_SUM;
                 appdClusterRollUpType = MetricWriter.METRIC_CLUSTER_ROLLUP_TYPE_COLLECTIVE;
@@ -343,7 +306,7 @@ public class AzureMetrics implements AMonitorTaskRunnable {
                 if (logger.isDebugEnabled()) {
                     logger.info("Not Reporting Metric {} for Resource {} as the aggregation type is not supported",
                             azureMetricName,
-                            resource.name());
+                            resource.getName());
                 }
                 break;
         }
@@ -351,7 +314,7 @@ public class AzureMetrics implements AMonitorTaskRunnable {
             if (logger.isDebugEnabled()) {
                 logger.debug("Ignoring Metric {} for Resource {} as it is null or empty",
                         azureMetricName,
-                        resource.name(),
+                        resource.getName(),
                         azureMetricValue);
             }
         } else {
@@ -382,7 +345,7 @@ public class AzureMetrics implements AMonitorTaskRunnable {
             if (logger.isDebugEnabled()) {
                 logger.debug("Reporting Metric {} for Resource {} with value {}",
                         azureMetricName,
-                        resource.name(),
+                        resource.getName(),
                         azureMetricValue);
             }
             finalMetricList.add(metric);
