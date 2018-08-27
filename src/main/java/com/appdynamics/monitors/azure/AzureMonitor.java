@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory;
 import com.appdynamics.extensions.ABaseMonitor;
 import com.appdynamics.extensions.TasksExecutionServiceProvider;
 import com.appdynamics.extensions.util.AssertUtils;
+import com.appdynamics.monitors.azure.utils.AzureAPIWrapper;
 import com.appdynamics.monitors.azure.utils.Constants;
 import com.singularity.ee.agent.systemagent.api.exception.TaskExecutionException;
 
@@ -47,7 +48,8 @@ public class AzureMonitor extends ABaseMonitor {
         AssertUtils.assertNotNull(subscriptions, "The 'subscriptions' section in config.yml is not initialised");
         CountDownLatch countDownLatch = new CountDownLatch(getTaskCount());
         for (Map<String, ?> subscription : subscriptions) {
-			AzureMonitorTask task = new AzureMonitorTask(getContextConfiguration(), tasksExecutionServiceProvider.getMetricWriteHelper(), subscription, countDownLatch);
+            AzureAPIWrapper azure = new AzureAPIWrapper(subscription);
+			AzureMonitorTask task = new AzureMonitorTask(getContextConfiguration(), tasksExecutionServiceProvider.getMetricWriteHelper(), subscription, countDownLatch, azure);
             tasksExecutionServiceProvider.submit(subscription.get("subscriptionId").toString(),task);
         }
         try{
