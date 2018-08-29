@@ -11,6 +11,7 @@ package com.appdynamics.monitors.azure;
 import com.appdynamics.monitors.azure.utils.Constants;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import javax.net.ssl.*;
@@ -19,6 +20,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.security.*;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class AzureRestOperation {
@@ -48,6 +50,9 @@ public class AzureRestOperation {
             //noinspection StatementWithEmptyBody
             for (String line; (line = br.readLine()) != null; response += line);
             conn.disconnect();
+            if (logger.isDebugEnabled()) {
+                logger.debug("API response: " + response);
+            }
             return objectMapper.readTree(response);
         } catch (IOException e) {
             logger.error("Error while processing GET on URL {}", url, e);

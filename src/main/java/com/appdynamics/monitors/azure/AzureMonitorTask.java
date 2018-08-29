@@ -11,25 +11,24 @@ package com.appdynamics.monitors.azure;
 import com.appdynamics.extensions.AMonitorTaskRunnable;
 import com.appdynamics.extensions.MetricWriteHelper;
 import com.appdynamics.extensions.conf.MonitorContextConfiguration;
-import com.appdynamics.extensions.util.AssertUtils;
 import com.appdynamics.monitors.azure.metrics.AzureMetrics;
+import com.appdynamics.monitors.azure.utils.AzureAPIWrapper;
 import com.appdynamics.monitors.azure.utils.Constants;
-import com.microsoft.azure.PagedList;
-import com.microsoft.azure.management.Azure;
-import com.microsoft.azure.management.resources.GenericResource;
+import com.appdynamics.monitors.azure.utils.MetricDefinition;
+import com.appdynamics.monitors.azure.utils.Resource;
+
+import org.apache.commons.collections4.ListUtils;
 import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.TimeUnit;
 
 @SuppressWarnings("unchecked")
 class AzureMonitorTask implements AMonitorTaskRunnable{
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(AzureMonitorTask.class);
 
-    private final AtomicInteger azureResourcesCallCount = new AtomicInteger(0);
-
-    private static long startTime = System.currentTimeMillis();
+    private static long startTime;
 
     private final MonitorContextConfiguration configuration;
     private final MetricWriteHelper metricWriteHelper;
@@ -37,13 +36,16 @@ class AzureMonitorTask implements AMonitorTaskRunnable{
     private final List<Map<String,?>>  resourceGroupFilters;
     private final CountDownLatch countDownLatch;
 
-    AzureMonitorTask(MonitorContextConfiguration configuration, MetricWriteHelper metricWriteHelper, Map<String, ?> subscription, CountDownLatch countDownLatch) {
-         this.configuration = configuration;
-         this.metricWriteHelper = metricWriteHelper;
-         this.subscription = subscription;
-         this.countDownLatch = countDownLatch;
-         resourceGroupFilters = (List<Map<String,?>>) subscription.get("resourceGroups");
-         AssertUtils.assertNotNull(resourceGroupFilters, "The 'resourceGroupFilters' section in config.yml is either null or empty");
+    private AzureAPIWrapper azure;
+
+    AzureMonitorTask(MonitorContextConfiguration configuration, MetricWriteHelper metricWriteHelper, Map<String, ?> subscription, CountDownLatch countDownLatch, AzureAPIWrapper azure) {
+        this.configuration = configuration;
+        this.metricWriteHelper = metricWriteHelper;
+        this.subscription = subscription;
+        this.countDownLatch = countDownLatch;
+        this.resourceGroupFilters = (List<Map<String,?>>) subscription.get("resourceGroups");
+        this.azure = azure;
+//        AssertUtils.assertNotNull(resourceGroupFilters, "The 'resourceGroupFilters' section in config.yml is either null or empty");
     }
 
     @Override
@@ -58,6 +60,7 @@ class AzureMonitorTask implements AMonitorTaskRunnable{
     @Override
     public void run() {
         try {
+            startTime = System.currentTimeMillis();
             runTask();
         }
         catch(Exception e){
@@ -67,39 +70,41 @@ class AzureMonitorTask implements AMonitorTaskRunnable{
             countDownLatch.countDown();
         }
     }
-    private void runTask(){
-        AzureAuth.getAzureAuth(subscription);
-        Azure azure = Constants.azureMonitorAuth.withSubscription(subscription.get("subscriptionId").toString());
-        this.azureResourcesCallCount.incrementAndGet();
-        PagedList<GenericResource> resources = azure.genericResources().list();
+    private void runTask() throws Exception{
+        azure.authorize();
+        List<Resource> resources = azure.getResources();
+        if (resources == null || resources.size() == 0) throw new Exception("Resources list is null or empty");
         for (Map<String, ?> resourceGroupFilter : resourceGroupFilters) {
             List<Map<String, ?>> resourceTypeFilters = (List<Map<String, ?>>) resourceGroupFilter.get("resourceTypes");
             for (Map<String, ?> resourceTypeFilter : resourceTypeFilters) {
                 List<Map<String, ?>> resourceFilters = (List<Map<String, ?>>) resourceTypeFilter.get("resources");
                 for (Map<String, ?> resourceFilter : resourceFilters) {
                     String currentResourceGroupFilter = resourceGroupFilter.get("resourceGroup").toString();
-                    CountDownLatch countDownLatchAzure = new CountDownLatch(resources.size());
-                    for (GenericResource resource : resources) {
-                        String currentResourceFilter = resourceFilter.get("resource").toString();
-                        String currentResourceTypeFilter = resourceTypeFilter.get("resourceType").toString();
-                        AzureMetrics azureMetricsTask = new AzureMetrics(
-                                resourceFilter,
-                                currentResourceGroupFilter,
-                                currentResourceFilter,
-                                currentResourceTypeFilter,
-                                resource,
-                                subscription,
-                                countDownLatchAzure,
-                                metricWriteHelper,
-                                azure,
-                                configuration.getMetricPrefix());
-
-                        configuration.getContext().getExecutorService().execute("AzureMetrics", azureMetricsTask);
-                    }
-                    try{
-                        countDownLatchAzure.await();
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
+                    List<List<Resource>> resourcesChunks = ListUtils.partition(resources, (int) (.75 * (int) configuration.getConfigYml().get("numberOfThreads")));
+                    for (List<Resource> resourcesChunk : resourcesChunks) {
+                        CountDownLatch countDownLatchAzure = new CountDownLatch(resourcesChunk.size());
+                        for (Resource resource : resourcesChunk) {
+                            String currentResourceFilter = resourceFilter.get("resource").toString();
+                            String currentResourceTypeFilter = resourceTypeFilter.get("resourceType").toString();
+                            AzureMetrics azureMetricsTask = new AzureMetrics(
+                                    azure,
+                                    resourceFilter,
+                                    currentResourceGroupFilter,
+                                    currentResourceFilter,
+                                    currentResourceTypeFilter,
+                                    resource,
+                                    subscription,
+                                    countDownLatchAzure,
+                                    metricWriteHelper,
+                                    configuration.getMetricPrefix());
+    
+                            configuration.getContext().getExecutorService().submit(resource.getName(), azureMetricsTask);
+                        }
+                        try{
+                            countDownLatchAzure.await(Constants.TASKS_COUNTDOWN_LATCH_TIMEOUT, TimeUnit.SECONDS);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
                     }
                 }
             }
