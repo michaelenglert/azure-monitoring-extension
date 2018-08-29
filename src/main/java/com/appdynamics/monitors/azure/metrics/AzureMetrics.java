@@ -20,7 +20,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.collections4.ListUtils;
 import org.slf4j.LoggerFactory;
 
-import com.appdynamics.extensions.AMonitorTaskRunnable;
 import com.appdynamics.extensions.MetricWriteHelper;
 import com.appdynamics.extensions.metrics.Metric;
 import com.appdynamics.monitors.azure.utils.Constants;
@@ -32,7 +31,8 @@ import com.singularity.ee.agent.systemagent.api.MetricWriter;
 import com.fasterxml.jackson.databind.JsonNode;
 
 @SuppressWarnings("unchecked")
-public class AzureMetrics implements AMonitorTaskRunnable {
+public class AzureMetrics implements Runnable {
+
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(AzureMetrics.class);
     private final Map<String, ?> resourceFilter;
     private final String currentResourceGroupFilter;
@@ -71,11 +71,6 @@ public class AzureMetrics implements AMonitorTaskRunnable {
         else {
             subscriptionName = subscription.get("subscriptionId").toString();
         }
-    }
-
-    @Override
-    public void onTaskComplete() {
-        logger.info("Task Complete");
     }
 
     @Override
