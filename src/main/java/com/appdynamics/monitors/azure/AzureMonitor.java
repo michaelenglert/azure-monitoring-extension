@@ -50,10 +50,10 @@ public class AzureMonitor extends ABaseMonitor {
         for (Map<String, ?> subscription : subscriptions) {
             AzureAPIWrapper azure = new AzureAPIWrapper(subscription);
 			AzureMonitorTask task = new AzureMonitorTask(getContextConfiguration(), tasksExecutionServiceProvider.getMetricWriteHelper(), subscription, countDownLatch, azure);
-            tasksExecutionServiceProvider.submit(subscription.get("subscriptionId").toString(),task);
+            tasksExecutionServiceProvider.submit(subscription.get("subscriptionId").toString(), task);
         }
         try{
-            countDownLatch.await(45, TimeUnit.SECONDS);
+            countDownLatch.await(Constants.MONITOR_COUNTDOWN_LATCH_TIMEOUT, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }

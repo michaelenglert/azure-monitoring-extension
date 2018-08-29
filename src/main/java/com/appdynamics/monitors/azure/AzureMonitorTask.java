@@ -13,18 +13,22 @@ import com.appdynamics.extensions.MetricWriteHelper;
 import com.appdynamics.extensions.conf.MonitorContextConfiguration;
 import com.appdynamics.monitors.azure.metrics.AzureMetrics;
 import com.appdynamics.monitors.azure.utils.AzureAPIWrapper;
+import com.appdynamics.monitors.azure.utils.Constants;
+import com.appdynamics.monitors.azure.utils.MetricDefinition;
 import com.appdynamics.monitors.azure.utils.Resource;
 
+import org.apache.commons.collections4.ListUtils;
 import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 @SuppressWarnings("unchecked")
 class AzureMonitorTask implements AMonitorTaskRunnable{
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(AzureMonitorTask.class);
 
-    private static long startTime = System.currentTimeMillis();
+    private static long startTime;
 
     private final MonitorContextConfiguration configuration;
     private final MetricWriteHelper metricWriteHelper;
@@ -56,6 +60,7 @@ class AzureMonitorTask implements AMonitorTaskRunnable{
     @Override
     public void run() {
         try {
+            startTime = System.currentTimeMillis();
             runTask();
         }
         catch(Exception e){
@@ -75,28 +80,31 @@ class AzureMonitorTask implements AMonitorTaskRunnable{
                 List<Map<String, ?>> resourceFilters = (List<Map<String, ?>>) resourceTypeFilter.get("resources");
                 for (Map<String, ?> resourceFilter : resourceFilters) {
                     String currentResourceGroupFilter = resourceGroupFilter.get("resourceGroup").toString();
-                    CountDownLatch countDownLatchAzure = new CountDownLatch(resources.size());
-                    for (Resource resource : resources) {
-                        String currentResourceFilter = resourceFilter.get("resource").toString();
-                        String currentResourceTypeFilter = resourceTypeFilter.get("resourceType").toString();
-                        AzureMetrics azureMetricsTask = new AzureMetrics(
-                                azure,
-                                resourceFilter,
-                                currentResourceGroupFilter,
-                                currentResourceFilter,
-                                currentResourceTypeFilter,
-                                resource,
-                                subscription,
-                                countDownLatchAzure,
-                                metricWriteHelper,
-                                configuration.getMetricPrefix());
-
-                        configuration.getContext().getExecutorService().execute("AzureMetrics", azureMetricsTask);
-                    }
-                    try{
-                        countDownLatchAzure.await();
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
+                    List<List<Resource>> resourcesChunks = ListUtils.partition(resources, (int) (.75 * (int) configuration.getConfigYml().get("numberOfThreads")));
+                    for (List<Resource> resourcesChunk : resourcesChunks) {
+                        CountDownLatch countDownLatchAzure = new CountDownLatch(resourcesChunk.size());
+                        for (Resource resource : resourcesChunk) {
+                            String currentResourceFilter = resourceFilter.get("resource").toString();
+                            String currentResourceTypeFilter = resourceTypeFilter.get("resourceType").toString();
+                            AzureMetrics azureMetricsTask = new AzureMetrics(
+                                    azure,
+                                    resourceFilter,
+                                    currentResourceGroupFilter,
+                                    currentResourceFilter,
+                                    currentResourceTypeFilter,
+                                    resource,
+                                    subscription,
+                                    countDownLatchAzure,
+                                    metricWriteHelper,
+                                    configuration.getMetricPrefix());
+    
+                            configuration.getContext().getExecutorService().submit(resource.getName(), azureMetricsTask);
+                        }
+                        try{
+                            countDownLatchAzure.await(Constants.TASKS_COUNTDOWN_LATCH_TIMEOUT, TimeUnit.SECONDS);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
                     }
                 }
             }
