@@ -17,6 +17,8 @@ public class Constants {
 	public static final String AZURE_MSI_TOKEN_ENDPOINT = "http://169.254.169.254/metadata/identity/oauth2/token";
 	public static final int AZURE_METRICS_CHUNK_SIZE = 20;
 	public static final int AZURE_METRICS_API_ENDPOINT_LAST_SLASH_POS = 11;
+	public static final int AZURE_CONNECTION_TIMEOUT = 10000;
+	public static final int AZURE_READ_TIMEOUT = 10000;
     public static final long MONITOR_COUNTDOWN_LATCH_TIMEOUT = 45;
     public static final long TASKS_COUNTDOWN_LATCH_TIMEOUT = 45;
 	public static String accessToken;

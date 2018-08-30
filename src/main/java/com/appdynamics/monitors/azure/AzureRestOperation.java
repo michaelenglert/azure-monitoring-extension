@@ -33,23 +33,25 @@ public class AzureRestOperation {
     }
 
     public static JsonNode doGet(URL url, Map<String,String> headers) {
+        HttpURLConnection conn = null;
+        BufferedReader br = null;
         try {
             logger.debug("--> GET " + url);
             ObjectMapper objectMapper = new ObjectMapper();
             String response = "";
-            HttpURLConnection conn;
             conn = (HttpURLConnection) url.openConnection();
+            conn.setConnectTimeout(Constants.AZURE_CONNECTION_TIMEOUT);
+            conn.setReadTimeout(Constants.AZURE_READ_TIMEOUT);
             conn.setDoOutput(true);
             conn.setRequestMethod("GET");
             for (Map.Entry <String, String> header : headers.entrySet()) {
                 conn.setRequestProperty(header.getKey(), header.getValue());
             }
             conn.setRequestProperty("Content-Type", "application/json");
-            BufferedReader br = new BufferedReader(new InputStreamReader(
+            br = new BufferedReader(new InputStreamReader(
                 (conn.getInputStream())));
             //noinspection StatementWithEmptyBody
             for (String line; (line = br.readLine()) != null; response += line);
-            conn.disconnect();
             if (logger.isDebugEnabled()) {
                 logger.debug("API response: " + response);
             }
@@ -57,6 +59,16 @@ public class AzureRestOperation {
         } catch (IOException e) {
             logger.error("Error while processing GET on URL {}", url, e);
             return null;
+        } finally {
+            if (br != null) {
+                try {
+                    br.close();
+                } catch (IOException e) {
+                }
+            }
+            if (conn != null) {
+                conn.disconnect();
+            }
         }
     }
 
