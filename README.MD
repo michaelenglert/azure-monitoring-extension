@@ -36,6 +36,14 @@ subscriptions:
 2. Run `mvn -DskipTests clean install`
 3. The `AzureMonitor-<VERSION>.zip` file can be found in the `target` directory
 
+## CLI support
+
+It is possible to test the extension without the machine agent, and without sending real metrics to the controller by using the command line. Both the machine agent and the extension jar files must be present in the class path.
+
+Usage: java -Dorg.slf4j.simpleLogger.defaultLogLevel=DEBUG -cp ./machine-agent-x.x.xx.jar:./target/azure-monitoring-extension.jar com.appdynamics.monitors.azure.AzureMonitor
+
+NOTE: Depending on JRE version, you might need to add this parameter "--add-modules java.xml.bind"
+
 ## Directory Structure
 
 <table><tbody>
@@ -66,13 +74,62 @@ subscriptions:
 </tbody>
 </table>
 
+## Authentication using MSI (Managed Service Identity)
+
+Managed Service Identity is a feature of Azure Active Directory that simplifies the way that credentials are handled. More info here: https://docs.microsoft.com/en-us/azure/active-directory/managed-service-identity/overview
+
+To make use of this feature on a subscription, set the parameter useMSI to true in the config.yml file.
+  ```
+subscriptions:
+  - subscriptionId: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+    useMSI: "true"
+  ```
+
+## Dimensions
+
+In case you need more granularity for the metrics, it is possible to define filters to use Azure dimensions. For more info, check https://docs.microsoft.com/en-us/azure/monitoring-and-diagnostics/monitoring-rest-api-walkthrough#retrieve-metric-definitions-multi-dimensional-api
+
+  ```
+                metrics:
+                  - metric: "ThrottledRequests"
+                    filter: "EntityName eq 'myTopic'"
+                    alias: "Throttled Requests"
+                    subpath: "myTopic"
+  ```
+
+As a result, this would be the path of the metric that would be sent to the controller (note the use of the alias parameter to change the name of the metric in the path):
+
+Custom Metrics|AzureMonitor|xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx|resourceGroup1|namespaces|TestEventHub1|myTopic|Throttled Requests
+
 ## Metrics
 
 Metrics available for Azure are maintained within the [Azure Monitor Documentation - Reference - Metrics Supported](https://docs.microsoft.com/en-us/azure/monitoring-and-diagnostics/monitoring-supported-metrics)
 
+## Metrics alias
+
+The same way as with dimensions, it is possible to use the alias parameter to change the name of any simple metric in the path.
+
+  ```
+                metrics:
+                  - metric: "ThrottledRequests"
+                    alias: "Throttled Requests"
+  ```
+And this would be the path of the metric sent to the controller:
+
+Custom Metrics|AzureMonitor|xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx|resourceGroup1|namespaces|TestEventHub1|Throttled Requests
+
+## Metric time rollup
+
+The time-rollup qualifier specifies how the Controller rolls up the values when it converts from one-minute granularity tables to 10-minute granularity and 60-minute granularity tables over time. For more info, check https://docs.appdynamics.com/display/PRO45/Build+a+Monitoring+Extension+Using+Java#BuildaMonitoringExtensionUsingJava-MetricProcessingQualifier
+
+  ```
+                  - metric: "UnauthorizedRequests"
+                    timeRollUp: "METRIC_TIME_ROLLUP_TYPE_AVERAGE"
+  ```
+
 ## Excluding Metrics for Resources
 
-You can exlcude certain Metrics by adding an include within a filter Resource Element. To do this the following configuration in `config.yml` is required:
+You can exclude certain Metrics by adding an include within a filter Resource Element. To do this the following configuration in `config.yml` is required:
   ```
   subscriptions:
     - subscriptionId: ""
