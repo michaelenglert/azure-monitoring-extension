@@ -40,9 +40,9 @@ subscriptions:
 
 It is possible to test the extension without the machine agent, and without sending real metrics to the controller by using the command line. Both the machine agent and the extension jar files must be present in the class path.
 
-Usage: java -Dorg.slf4j.simpleLogger.defaultLogLevel=DEBUG -cp ./machine-agent-x.x.xx.jar:./target/azure-monitoring-extension.jar com.appdynamics.monitors.azure.AzureMonitor
+Usage: `java -Dorg.slf4j.simpleLogger.defaultLogLevel=DEBUG -cp ./machine-agent-x.x.xx.jar:./target/azure-monitoring-extension.jar com.appdynamics.monitors.azure.AzureMonitor`
 
-NOTE: Depending on JRE version, you might need to add this parameter "--add-modules java.xml.bind"
+NOTE: Depending on JRE version, you might need to add this parameter `--add-modules java.xml.bind`
 
 ## Directory Structure
 
@@ -76,7 +76,7 @@ NOTE: Depending on JRE version, you might need to add this parameter "--add-modu
 
 ## Authentication using MSI (Managed Service Identity)
 
-Managed Service Identity is a feature of Azure Active Directory that simplifies the way that credentials are handled. More info here: https://docs.microsoft.com/en-us/azure/active-directory/managed-service-identity/overview
+Managed Service Identity is a feature of Azure Active Directory that simplifies the way that credentials are handled. More info [here](https://docs.microsoft.com/en-us/azure/active-directory/managed-service-identity/overview)
 
 To make use of this feature on a subscription, set the parameter useMSI to true in the config.yml file.
   ```
@@ -87,7 +87,7 @@ subscriptions:
 
 ## Dimensions
 
-In case you need more granularity for the metrics, it is possible to define filters to use Azure dimensions. For more info, check https://docs.microsoft.com/en-us/azure/monitoring-and-diagnostics/monitoring-rest-api-walkthrough#retrieve-metric-definitions-multi-dimensional-api
+In case you need more granularity for the metrics, it is possible to define filters to use Azure dimensions. For more info, check [here](https://docs.microsoft.com/en-us/azure/monitoring-and-diagnostics/monitoring-rest-api-walkthrough#retrieve-metric-definitions-multi-dimensional-api)
 
   ```
                 metrics:
@@ -99,7 +99,7 @@ In case you need more granularity for the metrics, it is possible to define filt
 
 As a result, this would be the path of the metric that would be sent to the controller (note the use of the alias parameter to change the name of the metric in the path):
 
-Custom Metrics|AzureMonitor|xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx|resourceGroup1|namespaces|TestEventHub1|myTopic|Throttled Requests
+`Custom Metrics|AzureMonitor|xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx|resourceGroup1|namespaces|TestEventHub1|myTopic|Throttled Requests`
 
 ## Metrics
 
@@ -116,11 +116,11 @@ The same way as with dimensions, it is possible to use the alias parameter to ch
   ```
 And this would be the path of the metric sent to the controller:
 
-Custom Metrics|AzureMonitor|xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx|resourceGroup1|namespaces|TestEventHub1|Throttled Requests
+`Custom Metrics|AzureMonitor|xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx|resourceGroup1|namespaces|TestEventHub1|Throttled Requests`
 
-## Metric time rollup
+## Metric time-rollup
 
-The time-rollup qualifier specifies how the Controller rolls up the values when it converts from one-minute granularity tables to 10-minute granularity and 60-minute granularity tables over time. For more info, check https://docs.appdynamics.com/display/PRO45/Build+a+Monitoring+Extension+Using+Java#BuildaMonitoringExtensionUsingJava-MetricProcessingQualifier
+The time-rollup qualifier specifies how the Controller rolls up the values when it converts from one-minute granularity tables to 10-minute granularity and 60-minute granularity tables over time. For more info, check [here](https://docs.appdynamics.com/display/PRO45/Build+a+Monitoring+Extension+Using+Java#BuildaMonitoringExtensionUsingJava-MetricProcessingQualifier)
 
   ```
                   - metric: "UnauthorizedRequests"
