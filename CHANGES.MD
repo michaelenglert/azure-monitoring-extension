@@ -1,3 +1,9 @@
+### Version 1.11.0.0 (Alpha)
+
+* Add managed service identity support
+* Add tests (mock both api and controller calls)
+* Bug fixes (memory leaks)
+
 ### Version 1.10.0.0 (Alpha)
 
 * Add basic dimensions support
