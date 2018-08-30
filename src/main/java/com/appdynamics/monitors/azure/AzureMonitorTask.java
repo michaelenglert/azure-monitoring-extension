@@ -14,7 +14,6 @@ import com.appdynamics.extensions.conf.MonitorContextConfiguration;
 import com.appdynamics.monitors.azure.metrics.AzureMetrics;
 import com.appdynamics.monitors.azure.utils.AzureAPIWrapper;
 import com.appdynamics.monitors.azure.utils.Constants;
-import com.appdynamics.monitors.azure.utils.MetricDefinition;
 import com.appdynamics.monitors.azure.utils.Resource;
 
 import org.apache.commons.collections4.ListUtils;
